@@ -21,6 +21,23 @@ class VdiCreate(BaseModel):
     notes: str | None = None
 
 
+class VdiUpdate(BaseModel):
+    """Partial update of a VDI's editable fields.
+
+    Deliberately omits status: status is lifecycle-driven (ADR 0002) and can
+    never be set through a generic update.
+    """
+
+    item_number: int | None = None
+    submittal_number: str | None = None
+    name: str | None = None
+    description: str | None = None
+    approval_type: ApprovalType | None = None
+    submit_code: SubmitCode | None = None
+    spec_drawing_reference: str | None = None
+    notes: str | None = None
+
+
 class VdiRead(BaseModel):
     id: int
     project_id: int

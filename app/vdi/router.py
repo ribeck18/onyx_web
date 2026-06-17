@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.project import service as project_service
 from app.vdi import service
-from app.vdi.schema import VdiCreate, VdiRead
+from app.vdi.schema import VdiCreate, VdiRead, VdiUpdate
 
 router = APIRouter(prefix="/vdi", tags=["vdi"])
 
@@ -37,6 +37,16 @@ async def create_vdi(
     return VdiRead.model_validate(vendor_data_item)
 
 
+@router.get("", response_model=list[VdiRead])
+async def list_vdis(
+    project_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> list[VdiRead]:
+    """Return the vendor data items in one project (project_id is required)."""
+    vendor_data_items = await service.get_vdis(session, project_id)
+    return [VdiRead.model_validate(vendor_data_item) for vendor_data_item in vendor_data_items]
+
+
 @router.get("/{vdi_id}", response_model=VdiRead)
 async def get_vdi(
     vdi_id: int,
@@ -49,3 +59,35 @@ async def get_vdi(
             status_code=status.HTTP_404_NOT_FOUND, detail="Vendor data item not found"
         )
     return VdiRead.model_validate(vendor_data_item)
+
+
+@router.patch("/{vdi_id}", response_model=VdiRead)
+async def update_vdi(
+    vdi_id: int,
+    data: VdiUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> VdiRead:
+    """Partially update a VDI's editable fields (status is never editable)."""
+    vendor_data_item = await service.get_vdi(session, vdi_id)
+    if vendor_data_item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Vendor data item not found"
+        )
+    vendor_data_item = await service.update_vdi(session, vendor_data_item, data)
+    await session.commit()
+    return VdiRead.model_validate(vendor_data_item)
+
+
+@router.delete("/{vdi_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_vdi(
+    vdi_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Delete a VDI; the ORM cascade removes its Revisions."""
+    vendor_data_item = await service.get_vdi(session, vdi_id)
+    if vendor_data_item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Vendor data item not found"
+        )
+    await service.delete_vdi(session, vendor_data_item)
+    await session.commit()

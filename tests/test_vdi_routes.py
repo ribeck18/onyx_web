@@ -3,7 +3,9 @@ from __future__ import annotations
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.factories import make_project
+from sqlalchemy import text
+
+from tests.factories import make_project, make_revision, make_vdi
 
 
 def vdi_payload(project_id: int, **overrides: object) -> dict[str, object]:
@@ -97,5 +99,99 @@ async def test_get_vdi_returns_the_vdi(
 async def test_get_unknown_vdi_returns_404(client: AsyncClient) -> None:
     """An unknown VDI id is a 404."""
     response = await client.get("/vdi/999")
+
+    assert response.status_code == 404
+
+
+async def test_list_vdis_scoped_to_project(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """GET /vdi?project_id= returns only that project's VDIs."""
+    project_one = await seed_project(session, project_number="P-001")
+    project_two = await seed_project(session, project_number="P-002")
+    await client.post("/vdi", json=vdi_payload(project_one, item_number=1))
+    await client.post("/vdi", json=vdi_payload(project_one, item_number=2))
+    await client.post("/vdi", json=vdi_payload(project_two, item_number=1))
+
+    response = await client.get("/vdi", params={"project_id": project_one})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+    assert all(item["project_id"] == project_one for item in body)
+
+
+async def test_list_vdis_requires_project_id(client: AsyncClient) -> None:
+    """A missing project_id is a client error."""
+    response = await client.get("/vdi")
+
+    assert response.status_code == 422
+
+
+async def test_patch_updates_only_supplied_fields(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """PATCH changes the supplied fields and leaves the rest untouched."""
+    project_id = await seed_project(session)
+    created = await client.post(
+        "/vdi", json=vdi_payload(project_id, name="Original", notes="keep me")
+    )
+    vdi_id = created.json()["id"]
+
+    response = await client.patch(f"/vdi/{vdi_id}", json={"name": "Renamed"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Renamed"
+    assert body["notes"] == "keep me"
+    assert body["submit_code"] == "ptc"
+
+
+async def test_patch_cannot_set_status(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """status is not an editable field; PATCH cannot change it."""
+    project_id = await seed_project(session)
+    created = await client.post("/vdi", json=vdi_payload(project_id))
+    vdi_id = created.json()["id"]
+
+    response = await client.patch(f"/vdi/{vdi_id}", json={"status": "a"})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "not_started"
+
+
+async def test_patch_unknown_vdi_returns_404(client: AsyncClient) -> None:
+    """Updating an unknown VDI is a 404."""
+    response = await client.patch("/vdi/999", json={"name": "Nope"})
+
+    assert response.status_code == 404
+
+
+async def test_delete_returns_204_and_cascades_to_revisions(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """DELETE removes the VDI and, through the cascade, its revisions."""
+    project = make_project()
+    vdi = make_vdi(project)
+    revision = make_revision(vdi)
+    session.add(revision)
+    await session.flush()
+    vdi_id = vdi.id
+
+    response = await client.delete(f"/vdi/{vdi_id}")
+
+    assert response.status_code == 204
+    vdi_count = await session.execute(
+        text("SELECT COUNT(*) FROM vendor_data_items WHERE id = :id"), {"id": vdi_id}
+    )
+    revision_count = await session.execute(text("SELECT COUNT(*) FROM revisions"))
+    assert vdi_count.scalar_one() == 0
+    assert revision_count.scalar_one() == 0
+
+
+async def test_delete_unknown_vdi_returns_404(client: AsyncClient) -> None:
+    """Deleting an unknown VDI is a 404."""
+    response = await client.delete("/vdi/999")
 
     assert response.status_code == 404
