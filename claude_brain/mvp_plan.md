@@ -93,17 +93,16 @@ A web-based status and document tracker for vendor data items on construction pr
 
 ```
 NOT_STARTED
-    ↓  (user submits → creates Revision #1, attaches submittal doc)
+    ↓  (user submits → creates Revision 0, attaches submittal doc)
 SUBMITTED
-    ↓  (buyer returns with comments → attaches return doc + comments)
-RETURNED
-    ↓  (user resubmits → creates Revision #2, attaches new submittal doc)
-SUBMITTED
-    ↓  (buyer approves → attaches approval doc)
-APPROVED
+    ↓  (buyer returns with a Return Code + doc + comments)
+   ├─ A or D → approved (terminal)
+   └─ B or C → rejected
+                  ↓  (user resubmits → creates next Revision)
+              SUBMITTED → …
 ```
 
-The VDI `status` always reflects the current state. All history lives in the Revisions table.
+The buyer's return is a single event carrying a Return Code; A/D are approved (terminal) and B/C are rejected (resubmit). There is no separate "approve" step. The VDI `status` always equals the latest Return Code (or `NOT_STARTED`/`SUBMITTED`); all history lives in the Revisions table.
 
 ---
 
@@ -121,18 +120,21 @@ The VDI `status` always reflects the current state. All history lives in the Rev
 
 ## API / Form Actions (FastAPI Routes)
 
-| Method   | Route                    | Action                                              |
-| -------- | ------------------------ | --------------------------------------------------- |
-| GET      | `/`                      | Project list                                        |
-| GET/POST | `/projects/new`          | Create project                                      |
-| GET      | `/projects/{id}`         | Project detail                                      |
-| GET/POST | `/projects/{id}/vdi/new` | Create VDI                                          |
-| GET      | `/vdi/{id}`              | VDI detail + revision history                       |
-| POST     | `/vdi/{id}/submit`       | Submit revision (upload submittal doc)              |
-| POST     | `/vdi/{id}/return`       | Record buyer return (upload return doc + comments)  |
-| POST     | `/vdi/{id}/approve`      | Mark approved (A or D status) (upload approval doc) |
-|          |                          |                                                     |
-|          |                          |                                                     |
+| Method | Route                  | Action                                                                       |
+| ------ | ---------------------- | ---------------------------------------------------------------------------- |
+| GET    | `/`                    | Project list                                                                 |
+| POST   | `/projects`            | Create project                                                               |
+| GET    | `/projects/{id}`       | Project detail                                                               |
+| POST   | `/vdi`                 | Create VDI (`project_id` in body; 404 if project missing)                    |
+| GET    | `/vdi?project_id=`     | List VDIs in a project                                                       |
+| GET    | `/vdi/{id}`            | VDI detail                                                                   |
+| PATCH  | `/vdi/{id}`            | Update VDI fields (status excluded — lifecycle-only)                         |
+| DELETE | `/vdi/{id}`            | Delete VDI (cascades to revisions)                                           |
+| GET    | `/vdi/{id}/revisions`  | Revision history for a VDI                                                    |
+| POST   | `/vdi/{id}/submit`     | Submit: create next Revision (`submit_document` path), set status `SUBMITTED` |
+| POST   | `/vdi/{id}/return`     | Record buyer return (`return_code` A/B/C/D, `return_document`, `comments`) on the latest submitted Revision; set status to the code |
+
+There is no separate `approve` action — approval is a `return` carrying Return Code A or D (see the Return Code glossary entry in `CONTEXT.md`). Lifecycle transitions are guarded in `vdi.service` (submit only from `NOT_STARTED`/`B`/`C`; return only from `SUBMITTED`; `A`/`D` terminal); illegal transitions return HTTP 409. File handling is a path string only for now — real uploads under `/uploads/{project_id}/{vdi_id}/` remain post-MVP.
 
 ---
 
@@ -176,11 +178,11 @@ app/
 ├── vdi/
 │   ├── router.py
 │   ├── service.py
-│   └── schema.py
-├── revision/
-│   ├── router.py
-│   ├── service.py
-│   └── schema.py
+│   ├── schema.py
+│   └── revision/
+│       ├── router.py
+│       ├── service.py
+│       └── schema.py
 ├── templates/
 │   ├── base.html
 │   ├── project/

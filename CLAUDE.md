@@ -84,11 +84,11 @@ app/
 ├── vdi/
 │   ├── router.py
 │   ├── service.py
-│   └── schema.py
-├── revision/
-│   ├── router.py
-│   ├── service.py
-│   └── schema.py
+│   ├── schema.py
+│   └── revision/
+│       ├── router.py
+│       ├── service.py
+│       └── schema.py
 ├── templates/
 │   ├── base.html
 │   ├── project/
