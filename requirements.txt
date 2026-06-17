@@ -1,4 +1,4 @@
 sqlalchemy
 fastapi[standard]
 pydantic
-
+aiosqlite
