@@ -12,7 +12,7 @@ from app.database import Base, get_session
 # Importing the models package registers every model on Base.metadata so that
 # create_all builds the full schema and the mapper configures.
 import app.models  # noqa: F401
-from main import app
+from app.app import app
 
 
 @pytest_asyncio.fixture
