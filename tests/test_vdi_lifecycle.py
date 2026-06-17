@@ -176,6 +176,32 @@ async def test_get_unknown_revision_returns_404(
     assert response.status_code == 404
 
 
+async def test_get_latest_revision_returns_highest_number(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The latest read returns the most recent revision after a resubmittal."""
+    vdi_id = await seed_vdi(session)
+    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0.pdf"})
+    await force_status(session, vdi_id, SubmitStatus.B)
+    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev1.pdf"})
+
+    response = await client.get(f"/vdi/{vdi_id}/revisions/latest")
+
+    assert response.status_code == 200
+    assert response.json()["revision_number"] == 1
+
+
+async def test_get_latest_revision_without_history_returns_404(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A VDI that has never been submitted has no latest revision."""
+    vdi_id = await seed_vdi(session)
+
+    response = await client.get(f"/vdi/{vdi_id}/revisions/latest")
+
+    assert response.status_code == 404
+
+
 def test_revision_service_does_not_import_vdi_service() -> None:
     """ADR 0002: the dependency runs vdi.service -> revision.service only."""
     tree = ast.parse(inspect.getsource(revision_service))

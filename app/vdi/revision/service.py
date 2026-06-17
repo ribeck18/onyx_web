@@ -62,6 +62,11 @@ async def get_revision(session: AsyncSession, revision_id: int) -> Revision | No
 
 
 async def get_latest_revision(session: AsyncSession, vdi_id: int) -> Revision | None:
-    revisions = await get_revisions(session, vdi_id)
-    latest_rev = max(revisions, key=lambda revision: revision.revision_number)
-    return latest_rev
+    """Return a VDI's most recent revision, or None if it has none yet."""
+    result = await session.execute(
+        select(Revision)
+        .where(Revision.vendor_data_item_id == vdi_id)
+        .order_by(Revision.revision_number.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()

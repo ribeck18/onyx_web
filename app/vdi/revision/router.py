@@ -26,6 +26,19 @@ async def list_revisions(
     return [RevisionRead.model_validate(revision) for revision in revisions]
 
 
+# Registered before /{revision_id} so the literal "latest" is not captured as a
+# revision id (which would fail int conversion with a 422).
+@router.get("/latest", response_model=RevisionRead)
+async def get_latest_revsion(vdi_id: int, session: AsyncSession = Depends(get_session)):
+    """Return the latest revision belonging to a VDI."""
+    revision = await service.get_latest_revision(session, vdi_id)
+    if revision is None or revision.vendor_data_item_id != vdi_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Revision not found"
+        )
+    return RevisionRead.model_validate(revision)
+
+
 @router.get("/{revision_id}", response_model=RevisionRead)
 async def get_revision(
     vdi_id: int,
@@ -34,17 +47,6 @@ async def get_revision(
 ) -> RevisionRead:
     """Return a single revision belonging to the VDI."""
     revision = await service.get_revision(session, revision_id)
-    if revision is None or revision.vendor_data_item_id != vdi_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Revision not found"
-        )
-    return RevisionRead.model_validate(revision)
-
-
-@router.get("/latest", response_model=RevisionRead)
-async def get_latest_revsion(vdi_id: int, session: AsyncSession = Depends(get_session)):
-    """Return the latest revision belonging to a VDI."""
-    revision = await service.get_latest_revision(session, vdi_id)
     if revision is None or revision.vendor_data_item_id != vdi_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Revision not found"
