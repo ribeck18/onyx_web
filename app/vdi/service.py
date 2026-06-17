@@ -18,6 +18,10 @@ SUBMITTABLE_STATUSES = frozenset(
     {SubmitStatus.NOT_STARTED, SubmitStatus.B, SubmitStatus.C}
 )
 
+# A return records the buyer's response to the current submittal, so it is valid
+# only while the VDI is out for review.
+RETURNABLE_STATUSES = frozenset({SubmitStatus.SUBMITTED})
+
 
 async def create_vdi(session: AsyncSession, data: VdiCreate) -> VendorDataItem:
     """Create a new vendor data item and flush it to the session.
@@ -98,6 +102,32 @@ async def submit_vdi(
         session, vendor_data_item, submit_document
     )
     vendor_data_item.status = SubmitStatus.SUBMITTED
+    await session.flush()
+    return revision
+
+
+async def return_vdi(
+    session: AsyncSession,
+    vendor_data_item: VendorDataItem,
+    return_code: SubmitStatus,
+    return_document: str,
+    comments: str | None,
+) -> Revision:
+    """Record the buyer's return on the latest Revision and set VDI status.
+
+    The return side is written by revision.service onto the latest Revision
+    (the one currently out for review); the VDI status is set to the return
+    code and flushed together so the route commits them atomically. Callers
+    must check RETURNABLE_STATUSES first, which guarantees a latest Revision
+    exists.
+    """
+    latest_revision = await revision_service.get_latest_revision(
+        session, vendor_data_item.id
+    )
+    revision = await revision_service.record_return(
+        session, latest_revision, return_code, return_document, comments
+    )
+    vendor_data_item.status = return_code
     await session.flush()
     return revision
 

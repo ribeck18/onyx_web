@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.revision import Revision
+from app.vdi.submit_status import SubmitStatus
 
 if TYPE_CHECKING:
     from app.models.vdi import VendorDataItem
@@ -41,6 +42,27 @@ async def create_revision(
         submitted_at=datetime.now(timezone.utc),
     )
     session.add(revision)
+    await session.flush()
+    return revision
+
+
+async def record_return(
+    session: AsyncSession,
+    revision: Revision,
+    return_code: SubmitStatus,
+    return_document: str,
+    comments: str | None,
+) -> Revision:
+    """Write the buyer's return side onto a revision and flush.
+
+    The return code is stored as the revision's status (A/D approved,
+    B/C rejected); returned_at is server-set. This module owns revision
+    mutations; the dependency runs vdi.service -> here only.
+    """
+    revision.return_document = return_document
+    revision.returned_at = datetime.now(timezone.utc)
+    revision.comments = comments
+    revision.status = return_code
     await session.flush()
     return revision
 

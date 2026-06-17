@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.project import service as project_service
 from app.vdi import service
-from app.vdi.schema import VdiCreate, VdiRead, VdiSubmit, VdiUpdate
+from app.vdi.schema import VdiCreate, VdiRead, VdiReturn, VdiSubmit, VdiUpdate
 
 router = APIRouter(prefix="/vdi", tags=["vdi"])
 
@@ -96,6 +96,34 @@ async def submit_vdi(
             detail="VDI cannot be submitted from its current status",
         )
     await service.submit_vdi(session, vendor_data_item, data.submit_document)
+    await session.commit()
+    return VdiRead.model_validate(vendor_data_item)
+
+
+@router.post("/{vdi_id}/return", response_model=VdiRead)
+async def return_vdi(
+    vdi_id: int,
+    data: VdiReturn,
+    session: AsyncSession = Depends(get_session),
+) -> VdiRead:
+    """Record the buyer's return on a VDI's current submittal."""
+    vendor_data_item = await service.get_vdi(session, vdi_id)
+    if vendor_data_item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Vendor data item not found"
+        )
+    if vendor_data_item.status not in service.RETURNABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="VDI cannot be returned from its current status",
+        )
+    await service.return_vdi(
+        session,
+        vendor_data_item,
+        data.return_code,
+        data.return_document,
+        data.comments,
+    )
     await session.commit()
     return VdiRead.model_validate(vendor_data_item)
 
