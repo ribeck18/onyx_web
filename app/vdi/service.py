@@ -5,8 +5,18 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.revision import Revision
 from app.models.vdi import VendorDataItem
+from app.vdi.revision import service as revision_service
 from app.vdi.schema import VdiCreate, VdiUpdate
+from app.vdi.submit_status import SubmitStatus
+
+# A submit opens the next round-trip, so it is valid only before the first
+# submittal (NOT_STARTED) or after a rejection (B/C). SUBMITTED is already out
+# for review; A/D are approved (terminal).
+SUBMITTABLE_STATUSES = frozenset(
+    {SubmitStatus.NOT_STARTED, SubmitStatus.B, SubmitStatus.C}
+)
 
 
 async def create_vdi(session: AsyncSession, data: VdiCreate) -> VendorDataItem:
@@ -70,6 +80,26 @@ async def delete_vdi(session: AsyncSession, vendor_data_item: VendorDataItem) ->
     """Delete a VDI; ORM cascade removes its Revisions."""
     await session.delete(vendor_data_item)
     await session.flush()
+
+
+async def submit_vdi(
+    session: AsyncSession,
+    vendor_data_item: VendorDataItem,
+    submit_document: str,
+) -> Revision:
+    """Open the next Revision and move the VDI out for review.
+
+    Revision creation is delegated to revision.service (the only direction the
+    dependency runs); the new Revision and the VDI's SUBMITTED status are
+    flushed together so the route commits them atomically. Callers must check
+    SUBMITTABLE_STATUSES first.
+    """
+    revision = await revision_service.create_revision(
+        session, vendor_data_item, submit_document
+    )
+    vendor_data_item.status = SubmitStatus.SUBMITTED
+    await session.flush()
+    return revision
 
 
 async def get_vdi_by_item_number(

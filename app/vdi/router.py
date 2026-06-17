@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.project import service as project_service
 from app.vdi import service
-from app.vdi.schema import VdiCreate, VdiRead, VdiUpdate
+from app.vdi.schema import VdiCreate, VdiRead, VdiSubmit, VdiUpdate
 
 router = APIRouter(prefix="/vdi", tags=["vdi"])
 
@@ -74,6 +74,28 @@ async def update_vdi(
             status_code=status.HTTP_404_NOT_FOUND, detail="Vendor data item not found"
         )
     vendor_data_item = await service.update_vdi(session, vendor_data_item, data)
+    await session.commit()
+    return VdiRead.model_validate(vendor_data_item)
+
+
+@router.post("/{vdi_id}/submit", response_model=VdiRead)
+async def submit_vdi(
+    vdi_id: int,
+    data: VdiSubmit,
+    session: AsyncSession = Depends(get_session),
+) -> VdiRead:
+    """Submit a VDI: open its next Revision and move it out for review."""
+    vendor_data_item = await service.get_vdi(session, vdi_id)
+    if vendor_data_item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Vendor data item not found"
+        )
+    if vendor_data_item.status not in service.SUBMITTABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="VDI cannot be submitted from its current status",
+        )
+    await service.submit_vdi(session, vendor_data_item, data.submit_document)
     await session.commit()
     return VdiRead.model_validate(vendor_data_item)
 

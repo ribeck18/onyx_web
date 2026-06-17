@@ -21,6 +21,10 @@ class VdiCreate(BaseModel):
     notes: str | None = None
 
 
+class VdiSubmit(BaseModel):
+    submit_document: str
+
+
 class VdiUpdate(BaseModel):
     """Partial update of a VDI's editable fields.
 
