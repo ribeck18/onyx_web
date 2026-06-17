@@ -1,4 +1,7 @@
-sqlalchemy
+sqlalchemy[asyncio]
 fastapi[standard]
 pydantic
 aiosqlite
+pytest
+pytest-asyncio
+httpx

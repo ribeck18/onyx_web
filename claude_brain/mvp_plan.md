@@ -26,29 +26,66 @@ A web-based status and document tracker for vendor data items on construction pr
 | vendor_data    | VendorDataItems | a project has many vendor data items |
 
 ### VendorDataItem
-| Field       | Type         | Notes                                  |
-| ----------- | ------------ | -------------------------------------- |
-| id          | Integer PK   |                                        |
-| project_id  | FK → Project |                                        |
-| name        | String       | e.g. "Concrete Mix Design"             |
-| description | Text         | nullable                               |
-| status      | Enum         | NOT_STARTED, SUBMITTED, A, B, C, D     |
-| created_at  | DateTime     |                                        |
-| revisions   | Revison      | A vendor data will have many revisions |
+| Field                  | Type         | Notes                                                                  |
+| ---------------------- | ------------ | ---------------------------------------------------------------------- |
+| id                     | Integer PK   |                                                                        |
+| project_id             | FK → Project |                                                                        |
+| item_number            | Integer      | buyer-assigned, user-entered, required, unique per project             |
+| submittal_number       | String       | nullable — internal number; typically `[project_id] - [incremented count of VDIs in project]`; often unassigned until submitted |
+| name                   | String       | e.g. "Concrete Mix Design"                                             |
+| description            | Text         | nullable                                                               |
+| approval_type          | Enum         | ApprovalType: MANDATORY_APPROVAL, INFORMATION_ONLY                     |
+| submit_code            | Enum         | SubmitCode (see below)                                                 |
+| spec_drawing_reference | String       | nullable, not unique                                                   |
+| notes                  | String       | nullable                                                               |
+| status                 | Enum         | NOT_STARTED, SUBMITTED, A, B, C, D                                     |
+| created_at             | DateTime     |                                                                        |
+| revisions              | Revision     | A vendor data item will have many revisions                            |
+
+`item_number` and `submittal_number` are genuinely separate. The **item number** is assigned by the *buyer* when they hand us the list of vendor data items to complete. The **submittal number** is the number *our company* assigns internally, often not until the item is actually submitted. The two frequently do not line up. Enforce `UniqueConstraint(project_id, item_number)`.
+
+**ApprovalType enum**
+| Member             | Value                |
+| ------------------ | -------------------- |
+| MANDATORY_APPROVAL | "mandatory_approval" |
+| INFORMATION_ONLY   | "information_only"   |
+
+**SubmitCode enum** — when the submittal is due relative to the project timeline.
+| Member | Value   | Meaning                  |
+| ------ | ------- | ------------------------ |
+| AC     | "ac"    | As Completed             |
+| AFI    | "afi"   | At Final Inspection      |
+| ARO    | "aro"   | After Receipt of Order   |
+| AT     | "at"    | After Test               |
+| BC     | "bc"    | Before Contract Awarded  |
+| BFA    | "bfa"   | Before Final Acceptance  |
+| BFS    | "bfs"   | Before Fabrication Start |
+| PDS    | "pds"   | Prior to Delivery on Site |
+| PS     | "ps"    | Prior to Shipment        |
+| PT     | "pt"    | Prior to Test            |
+| PTC    | "ptc"   | Prior to Construction    |
+| PTI    | "pti"   | Prior to Installation    |
+| PTP    | "ptp"   | Prior to Purchase        |
+| PTW    | "ptw"   | Prior to Welding         |
+| ROS    | "ros"   | Prior to Removal Off-Site |
+| TS     | "ts"    | Time of Shipment         |
 
 ### Revision
-| Field               | Type                | Notes                                |
-| ------------------- | ------------------- | ------------------------------------ |
-| id                  | Integer PK          |                                      |
-| vendor_data_item_id | FK → VendorDataItem |                                      |
-| revision_number     | Integer             | auto-incremented per VDI             |
-| submit_document     | String              | file path, nullable                  |
-| submitted_at        | DateTime            | nullable                             |
-| return_document     | String              | file path, nullable (buyer's return) |
-| returned_at         | DateTime            | nullable                             |
-| comments            | Text                | buyer comments, nullable             |
-| status              | Enum                | SUBMITTED, A, B, C, D                |
-| created_at          | DateTime            |                                      |
+| Field               | Type                | Notes                                                         |
+| ------------------- | ------------------- | ------------------------------------------------------------- |
+| id                  | Integer PK          |                                                               |
+| vendor_data_item_id | FK → VendorDataItem | indexed                                                       |
+| revision_number     | Integer             | app-assigned, starts at 0, sequential per VDI                 |
+| submit_document     | String              | file path, **required** (a Revision is always a submittal)    |
+| submitted_at        | DateTime            | **required**                                                  |
+| return_document     | String              | file path, nullable (buyer's return)                          |
+| returned_at         | DateTime            | nullable                                                      |
+| comments            | Text                | buyer comments, nullable                                      |
+| status              | Enum (SubmitStatus) | reuses SubmitStatus; defaults to SUBMITTED; never NOT_STARTED |
+| created_at          | DateTime            |                                                               |
+| updated_at          | DateTime            |                                                               |
+
+`revision_number` is sequential per VDI starting at 0, enforced by `UniqueConstraint(vendor_data_item_id, revision_number)`. A Revision is created only at submit-time with a document attached, so the submit side is non-nullable; only the buyer's return side is optional. Enum columns are stored as lowercase string values in non-native columns — see `docs/adr/0001-enum-storage-as-string-values.md`. File storage currently persists a path string; the retrieval mechanism (VPS) will be finalized later.
 
 ---
 
