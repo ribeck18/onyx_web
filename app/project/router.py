@@ -72,5 +72,5 @@ async def delete_project(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
-    await service.delete_project(session, project.id)
+    await service.delete_project(session, project)
     await session.commit()
