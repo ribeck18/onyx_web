@@ -5,3 +5,6 @@
 __pycache__
 *.db
 uploads/
+.zennotes
+.pytest_cache
+.claude 
