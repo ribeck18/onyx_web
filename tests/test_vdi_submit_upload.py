@@ -22,19 +22,19 @@ async def test_submit_stores_file_and_serves_it_back(
     vdi_id = await seed_vdi(session)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/submit",
+        f"/api/vdi/{vdi_id}/submit",
         files={"file": ("rev0.pdf", b"the real submittal", "application/pdf")},
     )
 
     assert response.status_code == 200
-    revision = (await client.get(f"/vdi/{vdi_id}/revisions/latest")).json()
+    revision = (await client.get(f"/api/vdi/{vdi_id}/revisions/latest")).json()
     submit_file = revision["submit_file"]
     assert submit_file["original_name"] == "rev0.pdf"
     assert submit_file["content_type"] == "application/pdf"
     assert "stored_path" not in submit_file
 
     # The bytes are reachable through the stable download URL and on disk.
-    download = await client.get(f"/files/{submit_file['id']}")
+    download = await client.get(f"/api/files/{submit_file['id']}")
     assert download.status_code == 200
     assert download.content == b"the real submittal"
     assert any(tmp_path.iterdir())
@@ -46,7 +46,7 @@ async def test_submit_without_file_returns_422(
     """The file part is required; omitting it is a 422."""
     vdi_id = await seed_vdi(session)
 
-    response = await client.post(f"/vdi/{vdi_id}/submit")
+    response = await client.post(f"/api/vdi/{vdi_id}/submit")
 
     assert response.status_code == 422
 
@@ -58,7 +58,7 @@ async def test_submit_empty_file_returns_400(
     vdi_id = await seed_vdi(session)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/submit",
+        f"/api/vdi/{vdi_id}/submit",
         files={"file": ("rev0.pdf", b"", "application/pdf")},
     )
 

@@ -43,21 +43,21 @@ async def test_return_records_response_on_latest_revision(
     vdi_id = await seed_submitted_vdi(session)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/return",
+        f"/api/vdi/{vdi_id}/return",
         **return_request(return_code, comments="see markups"),
     )
 
     assert response.status_code == 200
     assert response.json()["status"] == return_code
 
-    revision = (await client.get(f"/vdi/{vdi_id}/revisions/latest")).json()
+    revision = (await client.get(f"/api/vdi/{vdi_id}/revisions/latest")).json()
     assert revision["status"] == return_code
     assert revision["return_file"]["original_name"] == "rev0-returned.pdf"
     assert revision["return_file"]["content_type"] == "application/pdf"
     assert revision["comments"] == "see markups"
     assert revision["returned_at"] is not None
 
-    download = await client.get(f"/files/{revision['return_file']['id']}")
+    download = await client.get(f"/api/files/{revision['return_file']['id']}")
     assert download.status_code == 200
     assert download.content == b"returned bytes"
 
@@ -69,7 +69,7 @@ async def test_return_empty_file_returns_400(
     vdi_id = await seed_submitted_vdi(session)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/return", **return_request("a", content=b"")
+        f"/api/vdi/{vdi_id}/return", **return_request("a", content=b"")
     )
 
     assert response.status_code == 400
@@ -82,7 +82,7 @@ async def test_return_without_file_returns_422(
     vdi_id = await seed_submitted_vdi(session)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/return", data={"return_code": "a"}
+        f"/api/vdi/{vdi_id}/return", data={"return_code": "a"}
     )
 
     assert response.status_code == 422
@@ -94,7 +94,7 @@ async def test_revision_out_for_review_has_no_return_file(
     """A submitted-but-not-returned revision serializes return_file as null."""
     vdi_id = await seed_submitted_vdi(session)
 
-    revision = (await client.get(f"/vdi/{vdi_id}/revisions/latest")).json()
+    revision = (await client.get(f"/api/vdi/{vdi_id}/revisions/latest")).json()
 
     assert revision["return_file"] is None
 
@@ -105,16 +105,16 @@ async def test_rejecting_return_is_resubmittable(
 ) -> None:
     """After a B/C return the VDI can be submitted again, opening the next revision."""
     vdi_id = await seed_submitted_vdi(session)
-    await client.post(f"/vdi/{vdi_id}/return", **return_request(rejecting_code))
+    await client.post(f"/api/vdi/{vdi_id}/return", **return_request(rejecting_code))
 
     resubmit = await client.post(
-        f"/vdi/{vdi_id}/submit",
+        f"/api/vdi/{vdi_id}/submit",
         files={"file": ("rev1.pdf", b"submittal bytes", "application/pdf")},
     )
 
     assert resubmit.status_code == 200
     assert resubmit.json()["status"] == "submitted"
-    revisions = (await client.get(f"/vdi/{vdi_id}/revisions")).json()
+    revisions = (await client.get(f"/api/vdi/{vdi_id}/revisions")).json()
     assert [revision["revision_number"] for revision in revisions] == [0, 1]
 
 
@@ -124,13 +124,13 @@ async def test_approving_return_is_terminal(
 ) -> None:
     """After an A/D return neither submit nor return is allowed."""
     vdi_id = await seed_submitted_vdi(session)
-    await client.post(f"/vdi/{vdi_id}/return", **return_request(approving_code))
+    await client.post(f"/api/vdi/{vdi_id}/return", **return_request(approving_code))
 
     resubmit = await client.post(
-        f"/vdi/{vdi_id}/submit",
+        f"/api/vdi/{vdi_id}/submit",
         files={"file": ("rev1.pdf", b"submittal bytes", "application/pdf")},
     )
-    rereturn = await client.post(f"/vdi/{vdi_id}/return", **return_request("b"))
+    rereturn = await client.post(f"/api/vdi/{vdi_id}/return", **return_request("b"))
 
     assert resubmit.status_code == 409
     assert rereturn.status_code == 409
@@ -146,7 +146,7 @@ async def test_return_on_not_started_returns_409(
     await session.flush()
 
     response = await client.post(
-        f"/vdi/{vendor_data_item.id}/return", **return_request("a")
+        f"/api/vdi/{vendor_data_item.id}/return", **return_request("a")
     )
 
     assert response.status_code == 409
@@ -154,7 +154,7 @@ async def test_return_on_not_started_returns_409(
 
 async def test_return_unknown_vdi_returns_404(client: AsyncClient) -> None:
     """Returning an unknown VDI is a 404."""
-    response = await client.post("/vdi/999/return", **return_request("a"))
+    response = await client.post("/api/vdi/999/return", **return_request("a"))
 
     assert response.status_code == 404
 
@@ -166,7 +166,7 @@ async def test_return_rejects_non_return_code(
     vdi_id = await seed_submitted_vdi(session)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/return", **return_request("submitted")
+        f"/api/vdi/{vdi_id}/return", **return_request("submitted")
     )
 
     assert response.status_code == 422
@@ -182,7 +182,7 @@ async def test_invalid_return_is_atomic(
     await session.flush()
     vdi_id = vendor_data_item.id
 
-    await client.post(f"/vdi/{vdi_id}/return", **return_request("a"))
+    await client.post(f"/api/vdi/{vdi_id}/return", **return_request("a"))
 
     returned = await session.execute(
         text("SELECT COUNT(*) FROM revisions WHERE returned_at IS NOT NULL")

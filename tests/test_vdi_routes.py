@@ -35,7 +35,7 @@ async def test_create_vdi_returns_201_with_not_started(
     """A valid POST creates the VDI in NOT_STARTED and echoes it back."""
     project_id = await seed_project(session)
 
-    response = await client.post("/vdi", json=vdi_payload(project_id))
+    response = await client.post("/api/vdi", json=vdi_payload(project_id))
 
     assert response.status_code == 201
     body = response.json()
@@ -50,7 +50,7 @@ async def test_create_vdi_unknown_project_returns_404(
     client: AsyncClient,
 ) -> None:
     """Creating against a non-existent project is a 404."""
-    response = await client.post("/vdi", json=vdi_payload(999))
+    response = await client.post("/api/vdi", json=vdi_payload(999))
 
     assert response.status_code == 404
 
@@ -61,10 +61,10 @@ async def test_duplicate_item_number_in_project_rejected(
     """A second VDI with the same item number in the project is rejected."""
     project_id = await seed_project(session)
 
-    first = await client.post("/vdi", json=vdi_payload(project_id, item_number=5))
+    first = await client.post("/api/vdi", json=vdi_payload(project_id, item_number=5))
     assert first.status_code == 201
 
-    second = await client.post("/vdi", json=vdi_payload(project_id, item_number=5))
+    second = await client.post("/api/vdi", json=vdi_payload(project_id, item_number=5))
     assert second.status_code == 409
 
 
@@ -75,8 +75,8 @@ async def test_same_item_number_allowed_across_projects(
     project_one = await seed_project(session, project_number="P-001")
     project_two = await seed_project(session, project_number="P-002")
 
-    first = await client.post("/vdi", json=vdi_payload(project_one, item_number=7))
-    second = await client.post("/vdi", json=vdi_payload(project_two, item_number=7))
+    first = await client.post("/api/vdi", json=vdi_payload(project_one, item_number=7))
+    second = await client.post("/api/vdi", json=vdi_payload(project_two, item_number=7))
 
     assert first.status_code == 201
     assert second.status_code == 201
@@ -87,10 +87,10 @@ async def test_get_vdi_returns_the_vdi(
 ) -> None:
     """GET /vdi/{id} returns the created vendor data item."""
     project_id = await seed_project(session)
-    created = await client.post("/vdi", json=vdi_payload(project_id))
+    created = await client.post("/api/vdi", json=vdi_payload(project_id))
     vdi_id = created.json()["id"]
 
-    response = await client.get(f"/vdi/{vdi_id}")
+    response = await client.get(f"/api/vdi/{vdi_id}")
 
     assert response.status_code == 200
     assert response.json()["id"] == vdi_id
@@ -98,7 +98,7 @@ async def test_get_vdi_returns_the_vdi(
 
 async def test_get_unknown_vdi_returns_404(client: AsyncClient) -> None:
     """An unknown VDI id is a 404."""
-    response = await client.get("/vdi/999")
+    response = await client.get("/api/vdi/999")
 
     assert response.status_code == 404
 
@@ -109,11 +109,11 @@ async def test_list_vdis_scoped_to_project(
     """GET /vdi?project_id= returns only that project's VDIs."""
     project_one = await seed_project(session, project_number="P-001")
     project_two = await seed_project(session, project_number="P-002")
-    await client.post("/vdi", json=vdi_payload(project_one, item_number=1))
-    await client.post("/vdi", json=vdi_payload(project_one, item_number=2))
-    await client.post("/vdi", json=vdi_payload(project_two, item_number=1))
+    await client.post("/api/vdi", json=vdi_payload(project_one, item_number=1))
+    await client.post("/api/vdi", json=vdi_payload(project_one, item_number=2))
+    await client.post("/api/vdi", json=vdi_payload(project_two, item_number=1))
 
-    response = await client.get("/vdi", params={"project_id": project_one})
+    response = await client.get("/api/vdi", params={"project_id": project_one})
 
     assert response.status_code == 200
     body = response.json()
@@ -123,7 +123,7 @@ async def test_list_vdis_scoped_to_project(
 
 async def test_list_vdis_requires_project_id(client: AsyncClient) -> None:
     """A missing project_id is a client error."""
-    response = await client.get("/vdi")
+    response = await client.get("/api/vdi")
 
     assert response.status_code == 422
 
@@ -134,11 +134,11 @@ async def test_patch_updates_only_supplied_fields(
     """PATCH changes the supplied fields and leaves the rest untouched."""
     project_id = await seed_project(session)
     created = await client.post(
-        "/vdi", json=vdi_payload(project_id, name="Original", notes="keep me")
+        "/api/vdi", json=vdi_payload(project_id, name="Original", notes="keep me")
     )
     vdi_id = created.json()["id"]
 
-    response = await client.patch(f"/vdi/{vdi_id}", json={"name": "Renamed"})
+    response = await client.patch(f"/api/vdi/{vdi_id}", json={"name": "Renamed"})
 
     assert response.status_code == 200
     body = response.json()
@@ -152,10 +152,10 @@ async def test_patch_cannot_set_status(
 ) -> None:
     """status is not an editable field; PATCH cannot change it."""
     project_id = await seed_project(session)
-    created = await client.post("/vdi", json=vdi_payload(project_id))
+    created = await client.post("/api/vdi", json=vdi_payload(project_id))
     vdi_id = created.json()["id"]
 
-    response = await client.patch(f"/vdi/{vdi_id}", json={"status": "a"})
+    response = await client.patch(f"/api/vdi/{vdi_id}", json={"status": "a"})
 
     assert response.status_code == 200
     assert response.json()["status"] == "not_started"
@@ -163,7 +163,7 @@ async def test_patch_cannot_set_status(
 
 async def test_patch_unknown_vdi_returns_404(client: AsyncClient) -> None:
     """Updating an unknown VDI is a 404."""
-    response = await client.patch("/vdi/999", json={"name": "Nope"})
+    response = await client.patch("/api/vdi/999", json={"name": "Nope"})
 
     assert response.status_code == 404
 
@@ -179,7 +179,7 @@ async def test_delete_returns_204_and_cascades_to_revisions(
     await session.flush()
     vdi_id = vdi.id
 
-    response = await client.delete(f"/vdi/{vdi_id}")
+    response = await client.delete(f"/api/vdi/{vdi_id}")
 
     assert response.status_code == 204
     vdi_count = await session.execute(
@@ -192,6 +192,6 @@ async def test_delete_returns_204_and_cascades_to_revisions(
 
 async def test_delete_unknown_vdi_returns_404(client: AsyncClient) -> None:
     """Deleting an unknown VDI is a 404."""
-    response = await client.delete("/vdi/999")
+    response = await client.delete("/api/vdi/999")
 
     assert response.status_code == 404
