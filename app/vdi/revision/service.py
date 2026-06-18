@@ -10,6 +10,7 @@ from app.models.revision import Revision
 from app.vdi.submit_status import SubmitStatus
 
 if TYPE_CHECKING:
+    from app.models.file import File
     from app.models.vdi import VendorDataItem
 
 
@@ -27,18 +28,19 @@ async def _next_revision_number(session: AsyncSession, vdi_id: int) -> int:
 async def create_revision(
     session: AsyncSession,
     vendor_data_item: VendorDataItem,
-    submit_document: str,
+    submit_file: File,
 ) -> Revision:
     """Open the next Revision on a VDI as a real submittal and flush.
 
     The revision number is max-existing-plus-one per VDI, submitted_at is
-    server-set, and status defaults to SUBMITTED via the model. This module
-    never imports vdi.service: the dependency only runs vdi.service -> here.
+    server-set, and status defaults to SUBMITTED via the model. The submitted
+    document is an already-saved File the route handed down. This module never
+    imports vdi.service: the dependency only runs vdi.service -> here.
     """
     revision = Revision(
         vendor_data_item=vendor_data_item,
         revision_number=await _next_revision_number(session, vendor_data_item.id),
-        submit_document=submit_document,
+        submit_file=submit_file,
         submitted_at=datetime.now(timezone.utc),
     )
     session.add(revision)
@@ -50,16 +52,17 @@ async def record_return(
     session: AsyncSession,
     revision: Revision,
     return_code: SubmitStatus,
-    return_document: str,
+    return_file: File,
     comments: str | None,
 ) -> Revision:
     """Write the buyer's return side onto a revision and flush.
 
     The return code is stored as the revision's status (A/D approved,
-    B/C rejected); returned_at is server-set. This module owns revision
+    B/C rejected); the returned document is an already-saved File the route
+    handed down, and returned_at is server-set. This module owns revision
     mutations; the dependency runs vdi.service -> here only.
     """
-    revision.return_document = return_document
+    revision.return_file = return_file
     revision.returned_at = datetime.now(timezone.utc)
     revision.comments = comments
     revision.status = return_code

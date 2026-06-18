@@ -39,7 +39,8 @@ async def test_submit_from_not_started_opens_revision_zero(
     vdi_id = await seed_vdi(session)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/submit", json={"submit_document": "uploads/rev0.pdf"}
+        f"/vdi/{vdi_id}/submit",
+        files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")},
     )
 
     assert response.status_code == 200
@@ -50,7 +51,8 @@ async def test_submit_from_not_started_opens_revision_zero(
     assert revisions[0]["revision_number"] == 0
     assert revisions[0]["status"] == "submitted"
     assert revisions[0]["submitted_at"] is not None
-    assert revisions[0]["submit_document"] == "uploads/rev0.pdf"
+    assert revisions[0]["submit_file"]["original_name"] == "rev0.pdf"
+    assert revisions[0]["submit_file"]["content_type"] == "application/pdf"
 
 
 @pytest.mark.parametrize("rejected_status", [SubmitStatus.B, SubmitStatus.C])
@@ -59,11 +61,11 @@ async def test_resubmit_from_rejected_opens_next_revision(
 ) -> None:
     """Resubmitting a rejected VDI opens the next revision and returns to SUBMITTED."""
     vdi_id = await seed_vdi(session)
-    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0.pdf"})
+    await client.post(f"/vdi/{vdi_id}/submit", files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")})
     await force_status(session, vdi_id, rejected_status)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/submit", json={"submit_document": "rev1.pdf"}
+        f"/vdi/{vdi_id}/submit", files={"file": ("rev1.pdf", b"submittal bytes", "application/pdf")}
     )
 
     assert response.status_code == 200
@@ -77,10 +79,10 @@ async def test_submit_already_submitted_returns_409(
 ) -> None:
     """A VDI already out for review cannot be submitted again."""
     vdi_id = await seed_vdi(session)
-    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0.pdf"})
+    await client.post(f"/vdi/{vdi_id}/submit", files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")})
 
     response = await client.post(
-        f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0-again.pdf"}
+        f"/vdi/{vdi_id}/submit", files={"file": ("rev0-again.pdf", b"submittal bytes", "application/pdf")}
     )
 
     assert response.status_code == 409
@@ -95,7 +97,7 @@ async def test_submit_terminal_status_returns_409(
     await force_status(session, vdi_id, terminal_status)
 
     response = await client.post(
-        f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0.pdf"}
+        f"/vdi/{vdi_id}/submit", files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")}
     )
 
     assert response.status_code == 409
@@ -104,7 +106,7 @@ async def test_submit_terminal_status_returns_409(
 async def test_submit_unknown_vdi_returns_404(client: AsyncClient) -> None:
     """Submitting an unknown VDI is a 404."""
     response = await client.post(
-        "/vdi/999/submit", json={"submit_document": "rev0.pdf"}
+        "/vdi/999/submit", files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")}
     )
 
     assert response.status_code == 404
@@ -117,7 +119,7 @@ async def test_rejected_submit_is_atomic(
     vdi_id = await seed_vdi(session)
     await force_status(session, vdi_id, SubmitStatus.A)
 
-    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0.pdf"})
+    await client.post(f"/vdi/{vdi_id}/submit", files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")})
 
     revision_count = await session.execute(
         text("SELECT COUNT(*) FROM revisions WHERE vendor_data_item_id = :id"),
@@ -140,7 +142,7 @@ async def test_get_single_revision(
 ) -> None:
     """A single-revision read returns that revision's persisted fields."""
     vdi_id = await seed_vdi(session)
-    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0.pdf"})
+    await client.post(f"/vdi/{vdi_id}/submit", files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")})
     revision_id = (await client.get(f"/vdi/{vdi_id}/revisions")).json()[0]["id"]
 
     response = await client.get(f"/vdi/{vdi_id}/revisions/{revision_id}")
@@ -157,7 +159,7 @@ async def test_get_revision_wrong_vdi_returns_404(
     """A revision read scoped to the wrong VDI is a 404."""
     vdi_id = await seed_vdi(session, project_number="P-001")
     other_vdi_id = await seed_vdi(session, project_number="P-002")
-    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0.pdf"})
+    await client.post(f"/vdi/{vdi_id}/submit", files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")})
     revision_id = (await client.get(f"/vdi/{vdi_id}/revisions")).json()[0]["id"]
 
     response = await client.get(f"/vdi/{other_vdi_id}/revisions/{revision_id}")
@@ -181,9 +183,9 @@ async def test_get_latest_revision_returns_highest_number(
 ) -> None:
     """The latest read returns the most recent revision after a resubmittal."""
     vdi_id = await seed_vdi(session)
-    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev0.pdf"})
+    await client.post(f"/vdi/{vdi_id}/submit", files={"file": ("rev0.pdf", b"submittal bytes", "application/pdf")})
     await force_status(session, vdi_id, SubmitStatus.B)
-    await client.post(f"/vdi/{vdi_id}/submit", json={"submit_document": "rev1.pdf"})
+    await client.post(f"/vdi/{vdi_id}/submit", files={"file": ("rev1.pdf", b"submittal bytes", "application/pdf")})
 
     response = await client.get(f"/vdi/{vdi_id}/revisions/latest")
 

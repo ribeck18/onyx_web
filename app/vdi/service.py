@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.revision import Revision
 from app.models.vdi import VendorDataItem
+
+if TYPE_CHECKING:
+    from app.models.file import File
 from app.vdi.revision import service as revision_service
 from app.vdi.schema import VdiCreate, VdiUpdate
 from app.vdi.submit_status import SubmitStatus
@@ -89,17 +93,17 @@ async def delete_vdi(session: AsyncSession, vendor_data_item: VendorDataItem) ->
 async def submit_vdi(
     session: AsyncSession,
     vendor_data_item: VendorDataItem,
-    submit_document: str,
+    submit_file: File,
 ) -> Revision:
     """Open the next Revision and move the VDI out for review.
 
     Revision creation is delegated to revision.service (the only direction the
-    dependency runs); the new Revision and the VDI's SUBMITTED status are
-    flushed together so the route commits them atomically. Callers must check
-    SUBMITTABLE_STATUSES first.
+    dependency runs); the new Revision links the already-saved submit File, and
+    it and the VDI's SUBMITTED status are flushed together so the route commits
+    them atomically. Callers must check SUBMITTABLE_STATUSES first.
     """
     revision = await revision_service.create_revision(
-        session, vendor_data_item, submit_document
+        session, vendor_data_item, submit_file
     )
     vendor_data_item.status = SubmitStatus.SUBMITTED
     await session.flush()
@@ -110,22 +114,22 @@ async def return_vdi(
     session: AsyncSession,
     vendor_data_item: VendorDataItem,
     return_code: SubmitStatus,
-    return_document: str,
+    return_file: File,
     comments: str | None,
 ) -> Revision:
     """Record the buyer's return on the latest Revision and set VDI status.
 
     The return side is written by revision.service onto the latest Revision
-    (the one currently out for review); the VDI status is set to the return
-    code and flushed together so the route commits them atomically. Callers
-    must check RETURNABLE_STATUSES first, which guarantees a latest Revision
-    exists.
+    (the one currently out for review), linking the already-saved return File;
+    the VDI status is set to the return code and flushed together so the route
+    commits them atomically. Callers must check RETURNABLE_STATUSES first, which
+    guarantees a latest Revision exists.
     """
     latest_revision = await revision_service.get_latest_revision(
         session, vendor_data_item.id
     )
     revision = await revision_service.record_return(
-        session, latest_revision, return_code, return_document, comments
+        session, latest_revision, return_code, return_file, comments
     )
     vendor_data_item.status = return_code
     await session.flush()
