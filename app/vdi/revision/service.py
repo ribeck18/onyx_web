@@ -52,16 +52,17 @@ async def record_return(
     session: AsyncSession,
     revision: Revision,
     return_code: SubmitStatus,
-    return_document: str,
+    return_file: File,
     comments: str | None,
 ) -> Revision:
     """Write the buyer's return side onto a revision and flush.
 
     The return code is stored as the revision's status (A/D approved,
-    B/C rejected); returned_at is server-set. This module owns revision
+    B/C rejected); the returned document is an already-saved File the route
+    handed down, and returned_at is server-set. This module owns revision
     mutations; the dependency runs vdi.service -> here only.
     """
-    revision.return_document = return_document
+    revision.return_file = return_file
     revision.returned_at = datetime.now(timezone.utc)
     revision.comments = comments
     revision.status = return_code

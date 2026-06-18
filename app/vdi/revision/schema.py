@@ -14,7 +14,7 @@ class RevisionRead(BaseModel):
     revision_number: int
     submit_file: FileRead
     submitted_at: datetime
-    return_document: str | None
+    return_file: FileRead | None
     returned_at: datetime | None
     comments: str | None
     status: SubmitStatus

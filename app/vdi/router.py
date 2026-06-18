@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -10,7 +10,8 @@ from app.file import service as file_service
 from app.file.dependencies import get_storage_root
 from app.project import service as project_service
 from app.vdi import service
-from app.vdi.schema import VdiCreate, VdiRead, VdiReturn, VdiUpdate
+from app.vdi.schema import RETURN_CODES, VdiCreate, VdiRead, VdiUpdate
+from app.vdi.submit_status import SubmitStatus
 
 router = APIRouter(prefix="/vdi", tags=["vdi"])
 
@@ -113,10 +114,23 @@ async def submit_vdi(
 @router.post("/{vdi_id}/return", response_model=VdiRead)
 async def return_vdi(
     vdi_id: int,
-    data: VdiReturn,
+    return_code: SubmitStatus = Form(...),
+    file: UploadFile = File(...),
+    comments: str | None = Form(None),
     session: AsyncSession = Depends(get_session),
+    storage_root: Path = Depends(get_storage_root),
 ) -> VdiRead:
-    """Record the buyer's return on a VDI's current submittal."""
+    """Record the buyer's return on a VDI's current submittal.
+
+    return_code, status, and emptiness are all validated before the file is
+    saved so a rejected return never writes orphaned bytes. The A/B/C/D rule
+    lives here now that the body is multipart form fields, not a JSON model.
+    """
+    if return_code not in RETURN_CODES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="return_code must be one of A, B, C, or D",
+        )
     vendor_data_item = await service.get_vdi(session, vdi_id)
     if vendor_data_item is None:
         raise HTTPException(
@@ -127,12 +141,13 @@ async def return_vdi(
             status_code=status.HTTP_409_CONFLICT,
             detail="VDI cannot be returned from its current status",
         )
+    return_file = await file_service.save_upload(session, file, storage_root)
     await service.return_vdi(
         session,
         vendor_data_item,
-        data.return_code,
-        data.return_document,
-        data.comments,
+        return_code,
+        return_file,
+        comments,
     )
     await session.commit()
     return VdiRead.model_validate(vendor_data_item)

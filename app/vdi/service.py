@@ -114,22 +114,22 @@ async def return_vdi(
     session: AsyncSession,
     vendor_data_item: VendorDataItem,
     return_code: SubmitStatus,
-    return_document: str,
+    return_file: File,
     comments: str | None,
 ) -> Revision:
     """Record the buyer's return on the latest Revision and set VDI status.
 
     The return side is written by revision.service onto the latest Revision
-    (the one currently out for review); the VDI status is set to the return
-    code and flushed together so the route commits them atomically. Callers
-    must check RETURNABLE_STATUSES first, which guarantees a latest Revision
-    exists.
+    (the one currently out for review), linking the already-saved return File;
+    the VDI status is set to the return code and flushed together so the route
+    commits them atomically. Callers must check RETURNABLE_STATUSES first, which
+    guarantees a latest Revision exists.
     """
     latest_revision = await revision_service.get_latest_revision(
         session, vendor_data_item.id
     )
     revision = await revision_service.record_return(
-        session, latest_revision, return_code, return_document, comments
+        session, latest_revision, return_code, return_file, comments
     )
     vendor_data_item.status = return_code
     await session.flush()

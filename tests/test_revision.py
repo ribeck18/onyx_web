@@ -66,7 +66,7 @@ async def test_return_side_is_optional(session: AsyncSession) -> None:
     session.add(revision)
     await session.flush()
 
-    assert revision.return_document is None
+    assert revision.return_file is None
     assert revision.returned_at is None
     assert revision.comments is None
 
