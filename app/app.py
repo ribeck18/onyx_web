@@ -7,7 +7,7 @@ from app.vdi.router import router as vdi_router
 
 app = FastAPI(title="Onyx")
 
-app.include_router(project_router)
-app.include_router(vdi_router)
-app.include_router(revision_router)
-app.include_router(file_router)
+app.include_router(project_router, prefix="/api")
+app.include_router(vdi_router, prefix="/api")
+app.include_router(revision_router, prefix="/api")
+app.include_router(file_router, prefix="/api")

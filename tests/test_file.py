@@ -15,7 +15,7 @@ async def test_save_then_download_round_trip(client, session, tmp_path):
     )
     await session.commit()
 
-    response = await client.get(f"/files/{stored_file.id}")
+    response = await client.get(f"/api/files/{stored_file.id}")
 
     assert response.status_code == 200
     assert response.content == b"the real submittal"
@@ -46,7 +46,7 @@ async def test_save_upload_rejects_empty_file(session, tmp_path):
 
 async def test_download_unknown_file_returns_404(client):
     """Downloading an id with no File row returns 404."""
-    response = await client.get("/files/999")
+    response = await client.get("/api/files/999")
 
     assert response.status_code == 404
 
