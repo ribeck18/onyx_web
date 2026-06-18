@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.vdi import service as vdi_service
 from app.vdi.submit_status import SubmitStatus
-from tests.factories import make_project, make_vdi
+from tests.factories import make_file, make_project, make_vdi
 
 
 async def seed_submitted_vdi(session: AsyncSession) -> int:
@@ -16,7 +16,7 @@ async def seed_submitted_vdi(session: AsyncSession) -> int:
     vendor_data_item = make_vdi(project)
     session.add(vendor_data_item)
     await session.flush()
-    await vdi_service.submit_vdi(session, vendor_data_item, "uploads/rev0.pdf")
+    await vdi_service.submit_vdi(session, vendor_data_item, make_file())
     await session.flush()
     return vendor_data_item.id
 
@@ -59,7 +59,7 @@ async def test_rejecting_return_is_resubmittable(
     )
 
     resubmit = await client.post(
-        f"/vdi/{vdi_id}/submit", json={"submit_document": "rev1.pdf"}
+        f"/vdi/{vdi_id}/submit", files={"file": ("rev1.pdf", b"submittal bytes", "application/pdf")}
     )
 
     assert resubmit.status_code == 200
@@ -80,7 +80,7 @@ async def test_approving_return_is_terminal(
     )
 
     resubmit = await client.post(
-        f"/vdi/{vdi_id}/submit", json={"submit_document": "rev1.pdf"}
+        f"/vdi/{vdi_id}/submit", files={"file": ("rev1.pdf", b"submittal bytes", "application/pdf")}
     )
     rereturn = await client.post(
         f"/vdi/{vdi_id}/return",

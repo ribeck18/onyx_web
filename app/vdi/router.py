@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
+from app.file import service as file_service
+from app.file.dependencies import get_storage_root
 from app.project import service as project_service
 from app.vdi import service
-from app.vdi.schema import VdiCreate, VdiRead, VdiReturn, VdiSubmit, VdiUpdate
+from app.vdi.schema import VdiCreate, VdiRead, VdiReturn, VdiUpdate
 
 router = APIRouter(prefix="/vdi", tags=["vdi"])
 
@@ -81,10 +85,15 @@ async def update_vdi(
 @router.post("/{vdi_id}/submit", response_model=VdiRead)
 async def submit_vdi(
     vdi_id: int,
-    data: VdiSubmit,
+    file: UploadFile = File(...),
     session: AsyncSession = Depends(get_session),
+    storage_root: Path = Depends(get_storage_root),
 ) -> VdiRead:
-    """Submit a VDI: open its next Revision and move it out for review."""
+    """Submit a VDI: store the uploaded submittal and open its next Revision.
+
+    The status guard runs before the file is saved so a rejected submit (409)
+    never writes orphaned bytes; save_upload then rejects an empty upload (400).
+    """
     vendor_data_item = await service.get_vdi(session, vdi_id)
     if vendor_data_item is None:
         raise HTTPException(
@@ -95,7 +104,8 @@ async def submit_vdi(
             status_code=status.HTTP_409_CONFLICT,
             detail="VDI cannot be submitted from its current status",
         )
-    await service.submit_vdi(session, vendor_data_item, data.submit_document)
+    submit_file = await file_service.save_upload(session, file, storage_root)
+    await service.submit_vdi(session, vendor_data_item, submit_file)
     await session.commit()
     return VdiRead.model_validate(vendor_data_item)
 

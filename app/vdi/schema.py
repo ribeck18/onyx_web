@@ -28,10 +28,6 @@ class VdiCreate(BaseModel):
     notes: str | None = None
 
 
-class VdiSubmit(BaseModel):
-    submit_document: str
-
-
 class VdiReturn(BaseModel):
     return_code: SubmitStatus
     return_document: str

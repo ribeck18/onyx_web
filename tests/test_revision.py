@@ -32,7 +32,7 @@ async def test_revision_timestamps_populate(session: AsyncSession) -> None:
     assert revision.updated_at is not None
 
 
-@pytest.mark.parametrize("missing_field", ["submit_document", "submitted_at"])
+@pytest.mark.parametrize("missing_field", ["submit_file", "submitted_at"])
 async def test_revision_requires_a_real_submittal(
     session: AsyncSession, missing_field: str
 ) -> None:

@@ -10,15 +10,17 @@ from app.database import Base
 from app.vdi.submit_status import SubmitStatus
 
 if TYPE_CHECKING:
+    from app.models.file import File
     from app.models.vdi import VendorDataItem
 
 
 class Revision(Base):
     """One round-trip with the buyer on a Vendor Data Item.
 
-    A submittal is always sent out (submit_document + submitted_at are required);
+    A submittal is always sent out (submit_file + submitted_at are required);
     the buyer's return side (return_document, returned_at, comments, A/B/C/D
-    outcome) is optional while the revision awaits a response.
+    outcome) is optional while the revision awaits a response. The submit file
+    lives in a decoupled File row this revision points at (ADR 0003).
     """
 
     __tablename__ = "revisions"
@@ -37,7 +39,10 @@ class Revision(Base):
         nullable=False,
     )
     revision_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    submit_document: Mapped[str] = mapped_column(String(1024), nullable=False)
+    submit_file_id: Mapped[int] = mapped_column(
+        ForeignKey("files.id"),
+        nullable=False,
+    )
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -72,4 +77,10 @@ class Revision(Base):
     vendor_data_item: Mapped["VendorDataItem"] = relationship(
         "VendorDataItem",
         back_populates="revisions",
+    )
+    # File is a decoupled leaf with no back-reference (ADR 0003); selectin keeps
+    # the file loaded eagerly so RevisionRead can serialize it under async.
+    submit_file: Mapped["File"] = relationship(
+        "File",
+        lazy="selectin",
     )

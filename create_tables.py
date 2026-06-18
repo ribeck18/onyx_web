@@ -2,8 +2,8 @@ import asyncio
 
 from app.database import Base, engine
 
-# Importing the models package registers Project, VendorDataItem, and Revision
-# on Base.metadata so create_all builds the full schema.
+# Importing the models package registers Project, VendorDataItem, Revision, and
+# File on Base.metadata so create_all builds the full schema.
 import app.models  # noqa: F401
 
 
