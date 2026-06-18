@@ -3,5 +3,6 @@
 from app.models.project import Project
 from app.models.vdi import VendorDataItem
 from app.models.revision import Revision
+from app.models.file import File
 
-__all__ = ["Project", "VendorDataItem", "Revision"]
+__all__ = ["Project", "VendorDataItem", "Revision", "File"]

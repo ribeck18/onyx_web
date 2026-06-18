@@ -1,12 +1,28 @@
 from __future__ import annotations
 
+import io
 from datetime import datetime, timezone
+
+from starlette.datastructures import Headers, UploadFile
 
 from app.models.project import Project
 from app.models.revision import Revision
 from app.models.vdi import VendorDataItem
 from app.vdi.approval_type import ApprovalType
 from app.vdi.submit_code import SubmitCode
+
+
+def make_upload(
+    content: bytes = b"submittal bytes",
+    filename: str = "rev0.pdf",
+    content_type: str = "application/pdf",
+) -> UploadFile:
+    """Build a Starlette UploadFile for driving save_upload in tests."""
+    return UploadFile(
+        file=io.BytesIO(content),
+        filename=filename,
+        headers=Headers({"content-type": content_type}),
+    )
 
 
 def make_project(project_number: str = "P-001", name: str = "Test Job") -> Project:
