@@ -35,6 +35,11 @@ templates.env.filters["submit_code_short"] = labels.submit_code_short
 templates.env.filters["preview_kind"] = file_preview.preview_kind
 templates.env.filters["file_extension"] = file_preview.file_extension
 
+# The full enum→label maps power the modal selects (rendered server-side so the
+# labels are never duplicated in JS). Keyed by enum member, valued by human label.
+templates.env.globals["approval_type_options"] = labels.APPROVAL_TYPE_LABELS
+templates.env.globals["submit_code_options"] = labels.SUBMIT_CODE_LABELS
+
 
 def resolve_theme(request: Request) -> str:
     """Return the theme from the request cookie, defaulting to dark.

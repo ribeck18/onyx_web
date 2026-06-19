@@ -54,12 +54,20 @@ async function error_message_from(response) {
 
 // ------------------------------------------------------------------ modal
 
-function open_modal(overlay) {
-  const error = overlay.querySelector("[data-modal-error]");
+function clear_errors(scope) {
+  const error = scope.querySelector("[data-modal-error]");
   if (error) {
     error.hidden = true;
     error.textContent = "";
   }
+  for (const field_error of scope.querySelectorAll("[data-field-error]")) {
+    field_error.hidden = true;
+    field_error.textContent = "";
+  }
+}
+
+function open_modal(overlay) {
+  clear_errors(overlay);
   overlay.hidden = false;
   const first_input = overlay.querySelector("input, textarea, select");
   if (first_input) {
@@ -87,6 +95,17 @@ function configure_modal(overlay, trigger) {
     submit.textContent = trigger.dataset.submitLabel;
   }
 
+  // Some fields belong to create mode only (e.g. VDI notes have their own box on
+  // the detail page). Hide and disable them in edit mode so they leave the form
+  // entirely — disabled fields are skipped when the payload is collected.
+  const is_edit = trigger.dataset.mode === "edit";
+  for (const create_only of form.querySelectorAll("[data-create-only]")) {
+    create_only.hidden = is_edit;
+    for (const control of create_only.querySelectorAll("input, textarea, select")) {
+      control.disabled = is_edit;
+    }
+  }
+
   // Reset, then pre-fill from the optional JSON payload on the trigger.
   form.reset();
   if (trigger.dataset.prefill) {
@@ -109,9 +128,21 @@ function show_modal_error(form, message) {
 }
 
 function missing_required(form) {
-  return Array.from(form.querySelectorAll("[required]")).some(
+  return Array.from(form.querySelectorAll("[required]:not([disabled])")).some(
     (field) => field.value.trim() === "",
   );
+}
+
+function show_field_error(form, message) {
+  // A field-level error (e.g. the duplicate item_number 409) renders inline under
+  // its own field; fall back to the modal-wide error when there is no such slot.
+  const field_error = form.querySelector("[data-field-error]");
+  if (field_error) {
+    field_error.textContent = message;
+    field_error.hidden = false;
+    return true;
+  }
+  return false;
 }
 
 async function submit_modal_form(form) {
@@ -123,21 +154,29 @@ async function submit_modal_form(form) {
     return;
   }
 
-  // Collect named fields into a JSON payload, omitting blank optional values.
+  // Collect named fields into a JSON payload, omitting blank optional values and
+  // disabled (mode-hidden) fields.
   const payload = {};
-  for (const field of form.querySelectorAll("[name]")) {
+  for (const field of form.querySelectorAll("[name]:not([disabled])")) {
     const value = field.value.trim();
     if (value !== "" || field.required) {
       payload[field.name] = value;
     }
   }
 
+  clear_errors(form);
   const response = await send_json(form.dataset.method, form.dataset.url, payload);
   if (response.ok) {
     location.reload();
     return;
   }
-  show_modal_error(form, await error_message_from(response));
+  const message = await error_message_from(response);
+  // A duplicate item_number is a 409 the user fixes in one field — render it
+  // there; anything else is a modal-wide error.
+  if (response.status === 409 && show_field_error(form, message)) {
+    return;
+  }
+  show_modal_error(form, message);
 }
 
 // -------------------------------------------------------------- delete mode
@@ -167,6 +206,22 @@ async function delete_project(card) {
     return;
   }
   const response = await fetch(`/api/projects/${card.dataset.projectId}`, {
+    method: "DELETE",
+  });
+  if (response.ok) {
+    location.reload();
+  }
+}
+
+async function delete_vdi_row(row) {
+  const name = row.dataset.vdiName;
+  const confirmed = window.confirm(
+    `Delete VDI "${name}"? This removes its revision history.`,
+  );
+  if (!confirmed) {
+    return;
+  }
+  const response = await fetch(`/api/vdi/${row.dataset.vdiId}`, {
     method: "DELETE",
   });
   if (response.ok) {
@@ -252,6 +307,18 @@ document.addEventListener("click", (event) => {
   if (card && card.closest(".is-deleting")) {
     event.preventDefault();
     delete_project(card);
+    return;
+  }
+
+  // The whole VDI row is a link; while armed it deletes instead of navigating.
+  const vdi_row = event.target.closest("[data-vdi-row]");
+  if (vdi_row) {
+    event.preventDefault();
+    if (vdi_row.closest(".is-deleting")) {
+      delete_vdi_row(vdi_row);
+    } else {
+      window.location = vdi_row.dataset.href;
+    }
   }
 });
 

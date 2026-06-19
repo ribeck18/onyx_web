@@ -6,7 +6,7 @@ directly (ADR 0005) — never by self-calling the JSON API.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -37,3 +37,27 @@ async def home_gallery(
             }
         )
     return render(request, "project/list.html", {"cards": cards})
+
+
+@router.get("/projects/{project_id}")
+async def project_detail(
+    project_id: int,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+):
+    """Render the project detail page: header + scannable VDI table.
+
+    The VDI table and create/edit modal live here; the page renders by calling
+    services directly (never the JSON API).
+    """
+    project = await project_service.get_project(session, project_id)
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+    vdis = await vdi_service.get_vdis(session, project_id)
+    return render(
+        request,
+        "project/detail.html",
+        {"project": project, "vdis": vdis},
+    )

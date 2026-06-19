@@ -873,3 +873,131 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px;
   color: var(--faint);
 }
+
+/* ---------------------------------------------------------------- project detail */
+
+.project-detail-header {
+  padding: 40px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+}
+
+.detail-number {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .04em;
+  color: var(--accent);
+}
+
+.h1-detail {
+  margin: 10px 0 0;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.detail-description {
+  margin: 14px 0 0;
+  max-width: 64ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.section-header {
+  padding: 26px 0 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.section-header .section-label { margin: 0; }
+
+/* ---------------------------------------------------------------- VDI table */
+
+.vdi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-bottom: 80px;
+}
+
+.vdi-table thead th {
+  border-bottom: 1px solid var(--line-3);
+  padding: 0 14px 10px;
+  text-align: left;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.vdi-table .col-item { width: 60px; }
+.vdi-table .col-submittal { width: 140px; }
+.vdi-table .col-code { width: 70px; }
+.vdi-table .col-status { width: 200px; }
+
+.vdi-table tbody td {
+  padding: 14px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.vdi-row {
+  cursor: pointer;
+  transition: background .1s;
+}
+.vdi-row:hover { background: var(--row-hover); }
+
+.vdi-row-link {
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.col-item { font-family: 'JetBrains Mono', monospace; color: var(--muted); }
+
+.cell-value { font-family: 'JetBrains Mono', monospace; color: var(--muted); }
+.cell-dash { font-family: 'JetBrains Mono', monospace; color: var(--faint); }
+
+.code-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: help;
+}
+
+/* Delete mode mirrors the gallery: every row arms with a red edge + wash. */
+.is-deleting .vdi-row {
+  box-shadow: inset 3px 0 0 var(--bad);
+  background: var(--bad-soft);
+}
+.is-deleting .vdi-row-link { color: var(--bad-text); }
+
+/* ---------------------------------------------------------------- modal field groups */
+
+.field-group-label {
+  margin: 4px 0 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.field-error {
+  display: block;
+  margin-top: 7px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: var(--bad-text);
+}
