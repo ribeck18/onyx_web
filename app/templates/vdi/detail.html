@@ -2,11 +2,18 @@
 {% from "macros/badge.html" import status_badge %}
 {% from "macros/modal.html" import form_modal %}
 
+{% set is_historical = historical | default(false) %}
+
+{# Historical view reflects the chosen revision; live view the latest + VDI status. #}
+{% set view_revision = revision if is_historical else latest_revision %}
+{% set view_status = revision.status if is_historical else vdi.status %}
+{% set viewed_revision_id = view_revision.id if view_revision else none %}
+{% set preview_title = "REVISION FILE" if is_historical else "CURRENT FILE" %}
+
 {% set returned_codes = ["a", "b", "c", "d"] %}
-{% set is_returned = vdi.status.value in returned_codes %}
+{% set is_returned = view_status.value in returned_codes %}
 
 {% set status_value = vdi.status.value %}
-{% set is_historical = historical | default(false) %}
 {% set can_submit = status_value in ["not_started", "b", "c"] %}
 {% set can_return = status_value == "submitted" %}
 {% set is_revise = status_value in ["b", "c"] %}
@@ -22,6 +29,18 @@
 {% endblock %}
 
 {% block vdi_tag %}<span class="vdi-tag">VDI-{{ vdi.id }}</span>{% endblock %}
+
+{% block banner %}
+{% if is_historical %}
+<div class="hist-banner">
+  <div class="hist-banner-inner">
+    <span class="hist-banner-glyph" aria-hidden="true">!</span>
+    <span class="hist-banner-text">VIEWING PAST REVISION — NOT THE CURRENT STATE OF THIS VDI.</span>
+    <a class="hist-banner-link" href="/vdi/{{ vdi.id }}">RETURN TO CURRENT &#8617;</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
 
 {#
   Render the content-type-driven preview body for one file: PDF iframe, inline
@@ -46,7 +65,7 @@
 {% endmacro %}
 
 {% block content %}
-{% set rev = latest_revision %}
+{% set rev = view_revision %}
 
 <section class="vdi-hero">
   <div class="vdi-hero-main">
@@ -60,10 +79,10 @@
   </div>
   <div class="vdi-hero-status">
     <p class="eyebrow">STATUS</p>
-    <div class="hero-status fam-{{ vdi.status | status_family }}">
+    <div class="hero-status fam-{{ view_status | status_family }}">
       <span class="hero-dot" aria-hidden="true"></span>
-      <span class="hero-word">{{ vdi.status | status_hero_word }}</span>
-      {% if is_returned %}<span class="hero-code">/{{ vdi.status.value | upper }}</span>{% endif %}
+      <span class="hero-word">{{ view_status | status_hero_word }}</span>
+      {% if is_returned %}<span class="hero-code">/{{ view_status.value | upper }}</span>{% endif %}
     </div>
   </div>
 </section>
@@ -151,7 +170,7 @@
 
     <div class="preview">
       {% if rev is none %}
-      <p class="preview-title">CURRENT FILE</p>
+      <p class="preview-title">{{ preview_title }}</p>
       <div class="preview-empty">
         <p class="preview-empty-title">This VDI has not been started.</p>
         <p class="preview-empty-note">SUBMIT THE FIRST REVISION TO BEGIN THE LIFECYCLE</p>
@@ -162,7 +181,7 @@
         {% set active = "returned" if show_returned else "submitted" %}
         {% set active_file = rev.return_file if show_returned else rev.submit_file %}
         <div class="preview-head">
-          <span class="preview-title">CURRENT FILE</span>
+          <span class="preview-title">{{ preview_title }}</span>
           {% if show_returned %}
           <div class="preview-tabs">
             <button type="button"
@@ -196,7 +215,7 @@
       <div class="notes-head">
         <p class="section-label">NOTES</p>
         {% if is_historical %}<span class="notes-readonly">READ-ONLY</span>{% endif %}
-        <span class="notes-saved" data-notes-saved hidden>SAVED &#10003;</span>
+        {% if not is_historical %}<span class="notes-saved" data-notes-saved hidden>SAVED &#10003;</span>{% endif %}
       </div>
       <textarea class="notes-text"
                 rows="4"
@@ -213,13 +232,16 @@
     {% if revisions %}
     <div class="timeline">
       {% for rev in revisions %}
-      {% set current = loop.last %}
+      {# The true-latest entry always links to the live page; the viewed entry
+         (latest in live mode, the chosen revision in historical) is marked. #}
+      {% set is_latest = loop.last %}
+      {% set is_viewed = rev.id == viewed_revision_id %}
       <a class="timeline-entry"
-         href="{% if current %}/vdi/{{ vdi.id }}{% else %}/vdi/{{ vdi.id }}/revisions/{{ rev.id }}{% endif %}">
-        <span class="timeline-node fam-{{ rev.status | status_family }}{% if current %} is-current{% endif %}" aria-hidden="true"></span>
+         href="{% if is_latest %}/vdi/{{ vdi.id }}{% else %}/vdi/{{ vdi.id }}/revisions/{{ rev.id }}{% endif %}">
+        <span class="timeline-node fam-{{ rev.status | status_family }}{% if is_viewed %} is-current{% endif %}" aria-hidden="true"></span>
         <div class="timeline-row">
           <span class="timeline-rev">REV {{ rev.revision_number }}</span>
-          {% if current %}<span class="timeline-current-tag">CURRENT</span>{% endif %}
+          {% if is_viewed %}<span class="timeline-current-tag">CURRENT</span>{% endif %}
           {{ status_badge(rev.status) }}
         </div>
         <p class="timeline-dates">

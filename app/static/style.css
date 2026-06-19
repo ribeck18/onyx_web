@@ -173,6 +173,45 @@ a { color: inherit; text-decoration: none; }
   padding: 0 28px;
 }
 
+/* ---------------------------------------------------------------- historical banner */
+
+.hist-banner {
+  background: var(--warn-soft);
+  border-bottom: 1px solid var(--warn-line);
+}
+
+.hist-banner-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 10px 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: var(--warn-text);
+}
+
+.hist-banner-glyph {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--warn-line);
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.hist-banner-link {
+  margin-left: auto;
+  color: var(--warn-text);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------- buttons */
 
 .btn-primary {
