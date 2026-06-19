@@ -1,0 +1,10 @@
+{#
+  Status badge — the most repeated element. A dot + the human label, colored by
+  the status family (ns/info/ok/bad). The `fam-*` class sets the local --k token
+  group the badge paints from. Size is "small" (tables, timeline) or "large".
+#}
+{% macro status_badge(status, size="small") %}
+<span class="badge badge-{{ size }} fam-{{ status | status_family }}">
+  <span class="badge-dot" aria-hidden="true"></span>{{ status | status_label }}
+</span>
+{% endmacro %}

@@ -14,7 +14,7 @@ from typing import Any
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
-from app.web import labels
+from app.web import file_preview, labels
 
 # Templates live at app/templates; this file is app/web/templating.py.
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -32,6 +32,8 @@ templates.env.filters["status_hero_word"] = labels.status_hero_word
 templates.env.filters["approval_type_label"] = labels.approval_type_label
 templates.env.filters["submit_code_label"] = labels.submit_code_label
 templates.env.filters["submit_code_short"] = labels.submit_code_short
+templates.env.filters["preview_kind"] = file_preview.preview_kind
+templates.env.filters["file_extension"] = file_preview.file_extension
 
 
 def resolve_theme(request: Request) -> str:

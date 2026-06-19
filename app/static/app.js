@@ -174,6 +174,33 @@ async function delete_project(card) {
   }
 }
 
+// ----------------------------------------------------------- preview tabs
+
+function switch_preview_tab(tab) {
+  const preview = tab.closest(".preview");
+  if (!preview) {
+    return;
+  }
+  const target = tab.dataset.previewTab;
+
+  for (const button of preview.querySelectorAll("[data-preview-tab]")) {
+    button.classList.toggle("is-active", button === tab);
+  }
+  for (const panel of preview.querySelectorAll("[data-preview-panel]")) {
+    panel.hidden = panel.dataset.previewPanel !== target;
+  }
+
+  // The header filename and OPEN link follow the active tab.
+  const filename = preview.querySelector("[data-preview-filename]");
+  if (filename) {
+    filename.textContent = tab.dataset.filename;
+  }
+  const open_link = preview.querySelector("[data-preview-open]");
+  if (open_link) {
+    open_link.href = tab.dataset.fileUrl;
+  }
+}
+
 // --------------------------------------------------------- event delegation
 
 document.addEventListener("click", (event) => {
@@ -211,6 +238,12 @@ document.addEventListener("click", (event) => {
   const delete_toggle = event.target.closest("[data-delete-toggle]");
   if (delete_toggle) {
     toggle_delete_mode(delete_toggle);
+    return;
+  }
+
+  const preview_tab = event.target.closest("[data-preview-tab]");
+  if (preview_tab) {
+    switch_preview_tab(preview_tab);
     return;
   }
 

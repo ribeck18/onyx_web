@@ -488,3 +488,388 @@ a { color: inherit; text-decoration: none; }
   resize: vertical;
   min-height: 78px;
 }
+
+/* ---------------------------------------------------------------- status families */
+
+/* Each family exposes a local --k token group so badges, dots, the hero, and
+   timeline nodes can all paint from one set without per-family component rules. */
+.fam-ns   { --k: var(--ns);   --k-text: var(--ns-text);   --k-line: var(--ns-line);   --k-soft: var(--ns-soft); }
+.fam-info { --k: var(--info); --k-text: var(--info-text); --k-line: var(--info-line); --k-soft: var(--info-soft); }
+.fam-ok   { --k: var(--ok);   --k-text: var(--ok-text);   --k-line: var(--ok-line);   --k-soft: var(--ok-soft); }
+.fam-bad  { --k: var(--bad);  --k-text: var(--bad-text);  --k-line: var(--bad-line);  --k-soft: var(--bad-soft); }
+
+/* ---------------------------------------------------------------- status badge */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  background: var(--k-soft);
+  color: var(--k-text);
+  border: 1px solid var(--k-line);
+}
+.badge-small { padding: 3px 9px; font-size: 10.5px; }
+.badge-large { padding: 5px 12px; font-size: 12px; }
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--k);
+}
+.badge-large .badge-dot { width: 8px; height: 8px; }
+
+/* ---------------------------------------------------------------- section labels / rules */
+
+.section-label {
+  margin: 0 0 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.plain-rule { height: 1px; background: var(--hair); }
+
+/* ---------------------------------------------------------------- VDI hero */
+
+.vdi-hero {
+  padding: 40px 0 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.eyebrow.vdi-eyebrow { letter-spacing: .24em; }
+
+.h1-vdi {
+  margin: 12px 0 0;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.vdi-meta {
+  margin: 16px 0 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  letter-spacing: .03em;
+  color: var(--muted);
+}
+.vdi-meta-code { color: var(--accent); }
+
+.vdi-hero-status { text-align: right; }
+
+.hero-status {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.hero-dot {
+  align-self: center;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--k);
+  box-shadow: 0 0 12px var(--k);
+}
+
+.hero-word {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--k-text);
+}
+
+.hero-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--k);
+}
+
+/* ---------------------------------------------------------------- specification */
+
+.vdi-spec { padding: 26px 0; }
+
+.spec-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+}
+
+.spec-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 28px;
+  border-right: 1px solid var(--hair);
+}
+.spec-cell:last-child { border-right: none; padding-right: 0; }
+
+.spec-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.spec-value { font-size: 15px; }
+
+.spec-description {
+  margin: 22px 0 0;
+  max-width: 74ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------- VDI columns */
+
+.vdi-columns {
+  padding: 30px 0 80px;
+  display: flex;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+.vdi-col-left { flex: 1 1 440px; }
+.vdi-col-right { flex: 1 1 320px; }
+
+/* ---------------------------------------------------------------- buyer comments */
+
+.buyer-comments {
+  border-left: 2px solid var(--accent);
+  padding-left: 18px;
+  margin-bottom: 26px;
+}
+.buyer-comments-label {
+  margin: 0 0 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.buyer-comments-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+/* ---------------------------------------------------------------- file preview */
+
+.preview { margin-bottom: 30px; }
+
+.preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.preview-title {
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.preview-filename { color: var(--muted); }
+
+.preview-open {
+  margin-left: auto;
+  color: var(--accent);
+  letter-spacing: .04em;
+}
+.preview-open:hover { text-decoration: underline; }
+
+.preview-tabs { display: inline-flex; gap: 6px; }
+
+.preview-tab {
+  padding: 5px 12px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--line-3);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.preview-tab.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.preview-pdf {
+  width: 100%;
+  height: 480px;
+  border: 1px solid var(--line-3);
+  border-radius: 4px;
+  background: #525659;
+}
+
+.preview-image-box {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  border: 1px solid var(--line-3);
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+.preview-image {
+  max-height: 480px;
+  max-width: 100%;
+  border-radius: 3px;
+}
+
+.preview-download {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 28px;
+  border: 1px solid var(--line-3);
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+.preview-ext {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  padding: 4px 9px;
+  border: 1px solid var(--line-3);
+  border-radius: 3px;
+  color: var(--muted);
+}
+.preview-download-name { font-size: 15px; }
+.preview-download-note {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.preview-empty {
+  padding: 48px 20px;
+  text-align: center;
+  border: 1px dashed var(--line-3);
+  border-radius: 4px;
+}
+.preview-empty-title { margin: 0 0 10px; font-size: 15px; }
+.preview-empty-note {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--faint);
+}
+
+/* ---------------------------------------------------------------- notes */
+
+.notes-text {
+  width: 100%;
+  height: 84px;
+  padding: 12px;
+  border: 1px solid var(--field-line);
+  border-radius: 4px;
+  background: var(--field-bg);
+  color: var(--field-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+}
+
+/* ---------------------------------------------------------------- revision timeline */
+
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--bad), var(--ok));
+  opacity: .5;
+}
+
+.timeline-entry {
+  position: relative;
+  display: block;
+  margin-bottom: 24px;
+  cursor: pointer;
+}
+.timeline-entry:last-child { margin-bottom: 0; }
+
+.timeline-node {
+  position: absolute;
+  left: -23px;
+  top: 3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 2px solid var(--k);
+}
+.timeline-node.is-current { box-shadow: 0 0 10px var(--k); }
+
+.timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeline-rev {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.timeline-current-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  padding: 2px 7px;
+  border: 1px solid var(--accent-line);
+  border-radius: 3px;
+  color: var(--accent);
+}
+
+.timeline-row .badge { margin-left: auto; }
+
+.timeline-dates {
+  margin: 6px 0 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.timeline-empty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--faint);
+}
