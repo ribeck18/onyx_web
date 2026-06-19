@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  textarea, input, select, button { font-family: inherit; }
+  button { white-space: nowrap; }
+  @keyframes onyxPop { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#0f1115"/>
+    <rect x="42" y="32" width="16" height="16" fill="#4ea1ff" transform="rotate(45 50 40)"/>
+    <text x="50" y="72" font-family="monospace" font-size="13" font-weight="700" fill="#e6e9ef" text-anchor="middle" letter-spacing="2">ONYX</text>
+  </svg>
+</template>
+
+<div style="{{ shell }}">
+
+  <!-- ===== TOP BAR ===== -->
+  <div style="position:sticky;top:0;z-index:40;background:var(--topbar);border-bottom:1px solid var(--topbar-line);backdrop-filter:blur(6px);">
+    <div style="max-width:1180px;margin:0 auto;padding:0 28px;height:56px;display:flex;align-items:center;gap:18px;">
+      <a onClick="{{ goHome }}" style="display:flex;align-items:center;gap:11px;cursor:pointer;text-decoration:none;flex:none;">
+        <span style="width:16px;height:16px;background:var(--accent);transform:rotate(45deg);box-shadow:0 0 12px var(--accent-glow);"></span>
+        <span style="font-weight:700;font-size:18px;letter-spacing:.05em;color:var(--text);">ONYX</span>
+      </a>
+      <span style="width:1px;height:20px;background:var(--line-3);flex:none;"></span>
+      <div style="display:flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--faint);overflow:hidden;">
+        <sc-for list="{{ crumbs }}" as="c" hint-placeholder-count="2">
+          <sc-if value="{{ c.showSep }}" hint-placeholder-val="{{ true }}"><span style="color:var(--accent);">/</span></sc-if>
+          <sc-if value="{{ c.isLink }}" hint-placeholder-val="{{ true }}"><a onClick="{{ c.onClick }}" style="color:var(--muted);text-decoration:none;cursor:pointer;white-space:nowrap;" style-hover="color:var(--text);">{{ c.label }}</a></sc-if>
+          <sc-if value="{{ c.isText }}" hint-placeholder-val="{{ true }}"><span style="color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ c.label }}</span></sc-if>
+        </sc-for>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:14px;flex:none;">
+        <sc-if value="{{ showVdiTag }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--faint);">{{ vdiTag }}</span></sc-if>
+        <button onClick="{{ toggleTheme }}" style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:4px;border:1px solid var(--ghost-line);background:var(--ghost-bg);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;cursor:pointer;" style-hover="color:var(--text);border-color:var(--accent-line);">{{ themeBtnIcon }} {{ themeBtnLabel }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HISTORICAL BANNER ===== -->
+  <sc-if value="{{ isHistorical }}" hint-placeholder-val="{{ false }}">
+    <div style="background:var(--warn-soft);border-bottom:1px solid var(--warn-line);">
+      <div style="max-width:1180px;margin:0 auto;padding:11px 28px;display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--warn-text);">
+        <span style="width:16px;height:16px;border:1px solid var(--warn-text);display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none;">!</span>
+        <span style="letter-spacing:.02em;">VIEWING PAST REVISION — NOT THE CURRENT STATE OF THIS VDI.</span>
+        <a onClick="{{ backToCurrent }}" style="margin-left:auto;color:var(--warn-text);cursor:pointer;text-decoration:underline;white-space:nowrap;">RETURN TO CURRENT ↩</a>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="max-width:1180px;margin:0 auto;padding:0 28px;">
+
+    <!-- ============ HOME ============ -->
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:40px 0 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;color:var(--faint);">WORKSPACE</div>
+          <h1 style="margin:9px 0 0;font-size:34px;font-weight:600;letter-spacing:-.025em;line-height:1;">Projects</h1>
+          <div style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);">{{ projectCountLabel }}</div>
+        </div>
+        <div style="display:flex;gap:10px;flex:none;">
+          <button onClick="{{ toggleDelGallery }}" style="{{ delGalleryBtnStyle }}">{{ delGalleryBtnLabel }}</button>
+          <button onClick="{{ openProjectCreate }}" style="{{ primaryBtn }}" style-hover="background:var(--btn-hover);">+ New Project</button>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--hair);margin-bottom:30px;"></div>
+
+      <sc-if value="{{ hasProjects }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;padding-bottom:80px;">
+          <sc-for list="{{ projectCards }}" as="p" hint-placeholder-count="3">
+            <div onClick="{{ p.onClick }}" style="{{ p.cardStyle }}" style-hover="border-color:var(--accent-line);">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:{{ p.numColor }};letter-spacing:.04em;white-space:nowrap;">{{ p.project_number }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ p.cueColor }};letter-spacing:.04em;white-space:nowrap;">{{ p.cue }}</span>
+              </div>
+              <div style="font-size:19px;font-weight:600;margin-top:12px;letter-spacing:-.01em;line-height:1.2;">{{ p.name }}</div>
+              <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--hair);font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--faint);letter-spacing:.04em;">{{ p.itemsLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noProjects }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ emptyStyle }}">
+          <div style="font-size:17px;font-weight:600;">No projects yet.</div>
+          <p style="color:var(--muted);margin:9px 0 22px;">Create your first project to start tracking vendor data items.</p>
+          <button onClick="{{ openProjectCreate }}" style="{{ primaryBtn }}">+ New Project</button>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- ============ PROJECT DETAIL ============ -->
+    <sc-if value="{{ isProject }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:40px 0 0;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;">
+        <div style="min-width:0;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.06em;color:var(--accent);">{{ proj.project_number }}</div>
+          <h1 style="margin:9px 0 0;font-size:32px;font-weight:600;letter-spacing:-.025em;line-height:1.05;">{{ proj.name }}</h1>
+          <sc-if value="{{ proj.hasDescription }}" hint-placeholder-val="{{ true }}">
+            <p style="margin:12px 0 0;color:var(--muted);max-width:64ch;font-size:15px;line-height:1.6;">{{ proj.description }}</p>
+          </sc-if>
+        </div>
+        <button onClick="{{ openProjectEdit }}" style="{{ ghostBtn }}" style-hover="border-color:var(--accent-line);color:var(--text);">Edit</button>
+      </div>
+
+      <div style="height:1px;background:linear-gradient(90deg,var(--accent),var(--ok) 38%,transparent);opacity:.4;margin:30px 0 0;"></div>
+
+      <div style="padding:26px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--faint);">VENDOR DATA ITEMS</div>
+        <div style="display:flex;gap:10px;">
+          <button onClick="{{ toggleDelTable }}" style="{{ delTableBtnStyle }}">{{ delTableBtnLabel }}</button>
+          <button onClick="{{ openVdiCreate }}" style="{{ primaryBtn }}" style-hover="background:var(--btn-hover);">+ New VDI</button>
+        </div>
+      </div>
+
+      <sc-if value="{{ hasVdis }}" hint-placeholder-val="{{ true }}">
+        <div style="padding-bottom:80px;">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead>
+              <tr style="text-align:left;border-bottom:1px solid var(--line-3);">
+                <th style="padding:10px 14px 10px 4px;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;color:var(--faint);">NAME</th>
+                <th style="padding:10px 12px;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;color:var(--faint);width:60px;">ITEM</th>
+                <th style="padding:10px 12px;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;color:var(--faint);width:140px;">SUBMITTAL</th>
+                <th style="padding:10px 12px;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;color:var(--faint);width:70px;">CODE</th>
+                <th style="padding:10px 4px 10px 12px;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;color:var(--faint);width:200px;">STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ vdiRows }}" as="r" hint-placeholder-count="4">
+                <tr onClick="{{ r.onClick }}" style="{{ r.rowStyle }}" style-hover="background:var(--row-hover);">
+                  <td style="padding:14px;font-weight:500;border-bottom:1px solid var(--hair);">{{ r.name }}</td>
+                  <td style="padding:14px 12px;font-family:'JetBrains Mono',monospace;color:var(--muted);border-bottom:1px solid var(--hair);">{{ r.item_number }}</td>
+                  <td style="padding:14px 12px;font-family:'JetBrains Mono',monospace;color:{{ r.submittalColor }};border-bottom:1px solid var(--hair);">{{ r.submittalDisplay }}</td>
+                  <td style="padding:14px 12px;border-bottom:1px solid var(--hair);"><span title="{{ r.codeTitle }}" style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:12px;color:var(--accent);cursor:help;">{{ r.codeShort }}</span></td>
+                  <td style="padding:14px 4px 14px 12px;border-bottom:1px solid var(--hair);"><span style="{{ r.badge.wrap }}"><span style="{{ r.badge.dot }}"></span>{{ r.badge.label }}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noVdis }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ emptyStyle }}">
+          <div style="font-size:17px;font-weight:600;">No vendor data items yet.</div>
+          <p style="color:var(--muted);margin:9px 0 22px;">Add the documents this project requires from the vendor.</p>
+          <button onClick="{{ openVdiCreate }}" style="{{ primaryBtn }}">+ New VDI</button>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- ============ VDI DETAIL / HISTORICAL ============ -->
+    <sc-if value="{{ isVdi }}" hint-placeholder-val="{{ false }}">
+
+      <!-- hero -->
+      <div style="padding:40px 0 26px;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.24em;color:var(--faint);">VENDOR DATA ITEM &middot; {{ vdi.item_number }}</div>
+          <h1 style="margin:11px 0 0;font-size:40px;font-weight:600;letter-spacing:-.03em;line-height:1;">{{ vdi.name }}</h1>
+          <div style="margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--muted);">SUB {{ vdi.submittalDisplay }} &nbsp;&middot;&nbsp; CODE <span style="color:var(--accent);">{{ vdi.submit_code }}</span> &nbsp;&middot;&nbsp; {{ vdi.approval_type }}</div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:18px;flex:none;">
+          <div style="text-align:right;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--faint);margin-bottom:9px;">STATUS</div>
+            <div style="display:inline-flex;align-items:center;gap:11px;">
+              <span style="{{ hero.dotStyle }}"></span>
+              <span style="{{ hero.wordStyle }}">{{ hero.word }}</span>
+              <sc-if value="{{ hero.hasCode }}" hint-placeholder-val="{{ false }}"><span style="{{ hero.codeStyle }}">{{ hero.code }}</span></sc-if>
+            </div>
+          </div>
+          <button onClick="{{ openVdiEdit }}" style="{{ ghostBtn }}" style-hover="border-color:var(--accent-line);color:var(--text);">Edit</button>
+        </div>
+      </div>
+
+      <div style="height:1px;background:linear-gradient(90deg,var(--accent),var(--ok) 40%,transparent);opacity:.45;"></div>
+
+      <!-- specification -->
+      <div style="padding:26px 0;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--faint);margin-bottom:18px;">SPECIFICATION</div>
+        <div style="display:flex;flex-wrap:wrap;gap:0;">
+          <div style="flex:1 1 200px;padding-right:24px;border-right:1px solid var(--hair);"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;color:var(--faint);">APPROVAL TYPE</div><div style="margin-top:6px;font-size:15px;">{{ vdi.approval_type }}</div></div>
+          <div style="flex:1 1 200px;padding:0 24px;border-right:1px solid var(--hair);"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;color:var(--faint);">SUBMIT CODE</div><div style="margin-top:6px;font-size:15px;">{{ vdi.submit_code_label }}</div></div>
+          <div style="flex:1 1 160px;padding:0 24px;border-right:1px solid var(--hair);"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;color:var(--faint);">SPEC / DWG REF</div><div style="margin-top:6px;font-size:15px;">{{ vdi.spec }}</div></div>
+          <div style="flex:1 1 140px;padding-left:24px;"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;color:var(--faint);">SUBMITTAL</div><div style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:15px;">{{ vdi.submittalDisplay }}</div></div>
+        </div>
+        <sc-if value="{{ vdi.hasDescription }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top:18px;font-size:15px;color:var(--muted);line-height:1.6;max-width:74ch;">{{ vdi.description }}</div>
+        </sc-if>
+      </div>
+
+      <div style="height:1px;background:var(--hair);"></div>
+
+      <!-- lifecycle -->
+      <div style="padding:24px 0;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--faint);width:120px;">LIFECYCLE</div>
+        <button onClick="{{ lifecycle.onClick }}" disabled="{{ lifecycle.disabled }}" style="{{ lifecycle.style }}">{{ lifecycle.label }}</button>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--faint);letter-spacing:.02em;">{{ lifecycle.note }}</span>
+      </div>
+
+      <div style="height:1px;background:var(--hair);"></div>
+
+      <!-- two flowing columns -->
+      <div style="padding:30px 0 80px;display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;">
+
+        <!-- LEFT -->
+        <div style="flex:1 1 440px;min-width:320px;">
+          <sc-if value="{{ hasComments }}" hint-placeholder-val="{{ false }}">
+            <div style="border-left:2px solid var(--accent);padding:2px 0 2px 18px;margin-bottom:28px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--accent);margin-bottom:8px;">BUYER COMMENTS</div>
+              <p style="margin:0;font-size:15px;line-height:1.65;color:var(--text);">{{ comments }}</p>
+            </div>
+          </sc-if>
+
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--faint);margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span>{{ preview.title }}</span>
+            <sc-if value="{{ preview.showTabs }}" hint-placeholder-val="{{ false }}">
+              <span style="display:flex;gap:6px;"><button onClick="{{ setSubmitTab }}" style="{{ preview.submitTabStyle }}">SUBMITTED</button><button onClick="{{ setReturnTab }}" style="{{ preview.returnTabStyle }}">RETURNED</button></span>
+            </sc-if>
+            <sc-if value="{{ preview.hasFile }}" hint-placeholder-val="{{ false }}">
+              <span style="font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ preview.fileName }}</span>
+              <a href="{{ preview.url }}" target="_blank" style="margin-left:auto;color:var(--accent);cursor:pointer;font-size:11px;text-decoration:none;">OPEN &#8599;</a>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ preview.isPdfLive }}" hint-placeholder-val="{{ false }}">
+            <iframe src="{{ preview.url }}" style="width:100%;height:480px;border:1px solid var(--line-3);border-radius:4px;display:block;background:#525659;"></iframe>
+          </sc-if>
+          <sc-if value="{{ preview.isImageLive }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:18px;border:1px solid var(--line-3);border-radius:4px;background:var(--panel-2);text-align:center;"><img src="{{ preview.url }}" style="max-width:100%;max-height:480px;border-radius:3px;"></div>
+          </sc-if>
+          <sc-if value="{{ preview.isPlaceholder }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid var(--line-2);border-radius:4px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;background:repeating-linear-gradient(45deg,var(--stripe-a),var(--stripe-a) 11px,var(--stripe-b) 11px,var(--stripe-b) 22px);">
+              <div style="width:56px;height:68px;border:1px solid var(--line-3);border-radius:3px;background:var(--panel-2);position:relative;margin-bottom:16px;"><span style="position:absolute;top:10px;left:10px;right:10px;height:2px;background:var(--accent);box-shadow:0 9px 0 var(--line-3),0 18px 0 var(--line-3),0 27px 0 var(--line-3);"></span></div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--faint);letter-spacing:.04em;">{{ preview.phKind }} &middot; RENDER INLINE &middot; {{ preview.apiPath }}</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ preview.isDownload }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid var(--line-2);border-radius:4px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;background:var(--panel-2);">
+              <div style="width:48px;height:58px;border:1px solid var(--line-3);border-radius:3px;background:var(--panel);display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--faint);margin-bottom:14px;">{{ preview.ext }}</div>
+              <div style="font-size:14px;font-weight:600;">{{ preview.fileName }}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin:6px 0 16px;">CANNOT PREVIEW INLINE</div>
+              <a href="{{ preview.url }}" target="_blank" style="{{ primaryBtn }}text-decoration:none;">Download file</a>
+            </div>
+          </sc-if>
+          <sc-if value="{{ preview.isEmpty }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px dashed var(--line-3);border-radius:4px;padding:60px 24px;text-align:center;background:var(--panel-2);">
+              <div style="font-size:14px;font-weight:600;color:var(--muted);">This VDI has not been started.</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin-top:8px;letter-spacing:.04em;">SUBMIT THE FIRST REVISION TO BEGIN THE LIFECYCLE</div>
+            </div>
+          </sc-if>
+
+          <!-- notes -->
+          <div style="margin-top:30px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--faint);">NOTES</div>
+              <sc-if value="{{ notesReadonly }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--warn-text);background:var(--warn-soft);border:1px solid var(--warn-line);padding:2px 8px;border-radius:3px;letter-spacing:.04em;">READ-ONLY</span></sc-if>
+              <sc-if value="{{ notesSaved }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ok-text);">SAVED &#10003;</span></sc-if>
+            </div>
+            <textarea onChange="{{ onNotesInput }}" value="{{ notesDraft }}" disabled="{{ notesReadonly }}" placeholder="Add internal notes about this item&hellip;" style="{{ notesStyle }}"></textarea>
+            <div style="margin-top:12px;"><button onClick="{{ saveNotes }}" disabled="{{ saveNotesDisabled }}" style="{{ saveNotesStyle }}">SAVE NOTES</button></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: revision log -->
+        <div style="flex:1 1 320px;min-width:300px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--faint);margin-bottom:20px;">REVISION LOG</div>
+          <sc-if value="{{ hasTimeline }}" hint-placeholder-val="{{ true }}">
+            <div style="position:relative;padding-left:24px;">
+              <span style="position:absolute;left:6px;top:6px;bottom:6px;width:1px;background:linear-gradient(180deg,var(--bad),var(--ok));opacity:.5;"></span>
+              <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="2">
+                <div onClick="{{ t.onClick }}" style="position:relative;margin-bottom:24px;cursor:pointer;">
+                  <span style="{{ t.dotStyle }}"></span>
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:14px;">{{ t.revLabel }}</span>
+                    <sc-if value="{{ t.isCurrent }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);border:1px solid var(--accent-line);padding:2px 7px;border-radius:3px;letter-spacing:.04em;">CURRENT</span></sc-if>
+                    <span style="margin-left:auto;"><span style="{{ t.badge.wrap }}"><span style="{{ t.badge.dot }}"></span>{{ t.badge.label }}</span></span>
+                  </div>
+                  <div style="margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);">{{ t.dates }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noTimeline }}" hint-placeholder-val="{{ false }}">
+            <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--faint);">NO REVISIONS YET.</p>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+
+  </div>
+  <!-- ===== MODAL OVERLAY ===== -->
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onOverlayClick }}" style="position:fixed;inset:0;z-index:100;background:var(--overlay);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:60px 20px;overflow:auto;">
+      <div onClick="{{ stopProp }}" style="width:100%;max-width:520px;background:var(--modal);border:1px solid var(--modal-line);border-radius:6px;box-shadow:0 24px 70px rgba(0,0,0,.45);animation:onyxPop .16s ease;overflow:hidden;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px 0;">
+          <div>
+            <h2 style="margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--text);">{{ modal.title }}</h2>
+            <sc-if value="{{ modal.hasIntro }}" hint-placeholder-val="{{ false }}"><p style="margin:7px 0 0;color:var(--muted);font-size:13.5px;line-height:1.55;">{{ modal.intro }}</p></sc-if>
+          </div>
+          <button onClick="{{ closeModal }}" style="flex:none;width:32px;height:32px;border-radius:4px;border:1px solid var(--line-3);background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;" style-hover="border-color:var(--accent-line);color:var(--text);">&times;</button>
+        </div>
+
+        <div style="padding:20px 24px 4px;">
+          <sc-if value="{{ modal.hasError }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--bad-soft);border:1px solid var(--bad-line);color:var(--bad-text);border-radius:4px;padding:10px 13px;font-size:13px;margin-bottom:16px;">{{ modal.error }}</div>
+          </sc-if>
+
+          <!-- PROJECT MODAL -->
+          <sc-if value="{{ modal.isProject }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:15px;">
+              <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">PROJECT NUMBER <span style="color:var(--bad-text);">*</span></span><input id="pm_number" type="text" defaultValue="{{ modal.f.project_number }}" placeholder="26-131" style="{{ inputStyle }}"></label>
+              <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">NAME <span style="color:var(--bad-text);">*</span></span><input id="pm_name" type="text" defaultValue="{{ modal.f.name }}" placeholder="Acme Plant Expansion" style="{{ inputStyle }}"></label>
+              <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">DESCRIPTION</span><textarea id="pm_desc" defaultValue="{{ modal.f.description }}" placeholder="Optional&hellip;" style="{{ inputStyle }}height:78px;resize:vertical;"></textarea></label>
+            </div>
+          </sc-if>
+
+          <!-- VDI MODAL -->
+          <sc-if value="{{ modal.isVdi }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:18px;">
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;color:var(--faint);font-weight:500;margin-bottom:11px;">IDENTITY</div>
+                <div style="display:flex;flex-direction:column;gap:13px;">
+                  <div style="display:flex;gap:13px;">
+                    <label style="flex:0 0 120px;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">ITEM # <span style="color:var(--bad-text);">*</span></span><input id="vm_item" type="number" defaultValue="{{ modal.f.item_number }}" placeholder="12" style="{{ inputStyle }}"></label>
+                    <label style="flex:1;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">NAME <span style="color:var(--bad-text);">*</span></span><input id="vm_name" type="text" defaultValue="{{ modal.f.name }}" placeholder="Concrete Mix Design" style="{{ inputStyle }}"></label>
+                  </div>
+                  <sc-if value="{{ modal.dupError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:var(--bad-text);margin-top:-4px;">Item number already used in this project.</div></sc-if>
+                  <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">SUBMITTAL NUMBER</span><input id="vm_submittal" type="text" defaultValue="{{ modal.f.submittal_number }}" placeholder="26-131-003 (often blank until submitted)" style="{{ inputStyle }}"></label>
+                </div>
+              </div>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;color:var(--faint);font-weight:500;margin-bottom:11px;">CLASSIFICATION</div>
+                <div style="display:flex;flex-direction:column;gap:13px;">
+                  <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">APPROVAL TYPE <span style="color:var(--bad-text);">*</span></span><select id="vm_approval" defaultValue="{{ modal.f.approval_type }}" style="{{ inputStyle }}"><sc-for list="{{ approvalOptions }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></label>
+                  <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">SUBMIT CODE <span style="color:var(--bad-text);">*</span></span><select id="vm_code" defaultValue="{{ modal.f.submit_code }}" style="{{ inputStyle }}"><sc-for list="{{ codeOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></label>
+                  <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">SPEC / DRAWING REFERENCE</span><input id="vm_spec" type="text" defaultValue="{{ modal.f.spec_drawing_reference }}" placeholder="Spec &sect;3.4 / Dwg S-201" style="{{ inputStyle }}"></label>
+                </div>
+              </div>
+              <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">DESCRIPTION</span><textarea id="vm_desc" defaultValue="{{ modal.f.description }}" placeholder="Optional&hellip;" style="{{ inputStyle }}height:64px;resize:vertical;"></textarea></label>
+              <sc-if value="{{ modal.showNotes }}" hint-placeholder-val="{{ false }}"><label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">NOTES</span><textarea id="vm_notes" defaultValue="{{ modal.f.notes }}" placeholder="Optional internal notes&hellip;" style="{{ inputStyle }}height:64px;resize:vertical;"></textarea></label></sc-if>
+            </div>
+          </sc-if>
+
+          <!-- SUBMIT / REVISE MODAL -->
+          <sc-if value="{{ modal.isSubmit }}" hint-placeholder-val="{{ false }}">
+            <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">FILE <span style="color:var(--bad-text);">*</span></span><input id="sm_file" type="file" style="display:block;width:100%;font-size:13px;padding:14px;border:1px dashed var(--field-line);border-radius:4px;background:var(--field-bg);color:var(--field-text);cursor:pointer;"></label>
+            <p style="margin:11px 0 0;color:var(--muted);font-size:12.5px;">Uploads as a new revision and moves this item to <strong style="color:var(--info-text);font-weight:600;">Submitted</strong>.</p>
+          </sc-if>
+
+          <!-- RETURN MODAL -->
+          <sc-if value="{{ modal.isReturn }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:15px;">
+              <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">RETURN CODE <span style="color:var(--bad-text);">*</span></span><select id="rm_code" style="{{ inputStyle }}"><option value="" disabled selected>Select the buyer&rsquo;s verdict&hellip;</option><sc-for list="{{ returnOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></label>
+              <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">RETURNED FILE <span style="color:var(--bad-text);">*</span></span><input id="rm_file" type="file" style="display:block;width:100%;font-size:13px;padding:14px;border:1px dashed var(--field-line);border-radius:4px;background:var(--field-bg);color:var(--field-text);cursor:pointer;"></label>
+              <label style="display:block;"><span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:7px;">BUYER COMMENTS</span><textarea id="rm_comments" placeholder="Optional&hellip;" style="{{ inputStyle }}height:78px;resize:vertical;"></textarea></label>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:18px 24px 22px;">
+          <button onClick="{{ closeModal }}" style="{{ ghostBtn }}">Cancel</button>
+          <button onClick="{{ modal.onSubmit }}" style="{{ primaryBtn }}" style-hover="background:var(--btn-hover);">{{ modal.submitLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const projects = [
+      { id: 1, project_number: '26-131', name: 'Acme Plant Expansion', description: 'Full plant expansion including structural, mechanical, and electrical scopes. Vendor data items tracked through buyer approval.', created_at: '2026-01-05T08:00:00', updated_at: '2026-03-02T16:30:00' },
+      { id: 2, project_number: '25-094', name: 'Riverside Pump Station', description: null, created_at: '2025-09-12T08:00:00', updated_at: '2025-12-01T08:00:00' },
+      { id: 3, project_number: '26-007', name: 'North Terminal Retrofit', description: null, created_at: '2026-02-01T08:00:00', updated_at: '2026-02-01T08:00:00' },
+    ];
+    const vdis = [
+      { id: 101, project_id: 1, item_number: 12, submittal_number: '26-131-003', name: 'Concrete Mix Design', description: 'Design mix for foundation pours, 4000 psi.', approval_type: 'mandatory_approval', submit_code: 'ps', spec_drawing_reference: 'Spec \u00a703300', notes: 'Approved on revision B after air-entrainment correction.', status: 'a' },
+      { id: 102, project_id: 1, item_number: 7, submittal_number: null, name: 'Structural Steel Shop Drawings', description: 'Fabrication drawings for primary frame.', approval_type: 'mandatory_approval', submit_code: 'bfs', spec_drawing_reference: 'Dwg S-201 \u2013 S-240', notes: '', status: 'submitted' },
+      { id: 103, project_id: 1, item_number: 3, submittal_number: '26-131-001', name: 'Anchor Bolt Layout', description: 'Anchor bolt setting plan for column bases.', approval_type: 'mandatory_approval', submit_code: 'ptc', spec_drawing_reference: 'Dwg S-101', notes: 'Buyer flagged sheet 2 dimensions \u2014 coordinate with detailer before resubmit.', status: 'b' },
+      { id: 104, project_id: 1, item_number: 21, submittal_number: null, name: 'O&M Manuals', description: 'Operation and maintenance manuals for installed equipment.', approval_type: 'information_only', submit_code: 'afi', spec_drawing_reference: null, notes: '', status: 'not_started' },
+      { id: 105, project_id: 1, item_number: 15, submittal_number: '26-131-004', name: 'Fireproofing Submittal', description: 'Spray-applied fire-resistive material data and assemblies.', approval_type: 'mandatory_approval', submit_code: 'pti', spec_drawing_reference: 'Spec \u00a707810', notes: '', status: 'c' },
+      { id: 106, project_id: 1, item_number: 9, submittal_number: '26-131-002', name: 'Electrical Panel Schedules', description: 'Panelboard schedules and load calculations.', approval_type: 'information_only', submit_code: 'aro', spec_drawing_reference: 'Dwg E-401', notes: 'Approved as-is, no resubmittal required.', status: 'd' },
+    ];
+    const F = (id, n, ct) => ({ id, original_name: n, content_type: ct, url: null });
+    const revisions = [
+      { id: 1, vendor_data_item_id: 101, revision_number: 0, submit_file: F(11, 'concrete-mix-design-revA.pdf', 'application/pdf'), submitted_at: '2026-02-10T09:20:00', return_file: F(12, 'concrete-mix-redline.pdf', 'application/pdf'), returned_at: '2026-02-18T14:05:00', comments: 'Air-entrainment value in Table 2 is below spec \u00a703300-3.4.2. Revise and resubmit.', status: 'c' },
+      { id: 2, vendor_data_item_id: 101, revision_number: 1, submit_file: F(13, 'concrete-mix-design-revB.pdf', 'application/pdf'), submitted_at: '2026-02-24T11:00:00', return_file: F(14, 'concrete-mix-approval.pdf', 'application/pdf'), returned_at: '2026-03-02T16:30:00', comments: 'Approved as submitted. Air-entrainment now compliant with \u00a703300-3.4.2.', status: 'a' },
+      { id: 3, vendor_data_item_id: 102, revision_number: 0, submit_file: F(15, 'structural-steel-shop-drawings.dwg', 'application/acad'), submitted_at: '2026-03-05T10:15:00', return_file: null, returned_at: null, comments: null, status: 'submitted' },
+      { id: 4, vendor_data_item_id: 103, revision_number: 0, submit_file: F(16, 'anchor-bolt-layout.pdf', 'application/pdf'), submitted_at: '2026-01-28T08:45:00', return_file: F(17, 'anchor-bolt-markup.png', 'image/png'), returned_at: '2026-02-04T13:20:00', comments: 'Dimensions on sheet 2 do not match spec \u00a73.4. Revise and resubmit.', status: 'b' },
+      { id: 5, vendor_data_item_id: 105, revision_number: 0, submit_file: F(18, 'fireproofing-submittal.pdf', 'application/pdf'), submitted_at: '2026-03-01T09:00:00', return_file: F(19, 'fireproofing-markup.pdf', 'application/pdf'), returned_at: '2026-03-08T15:10:00', comments: 'Hourly rating for column line C not documented. Provide UL assembly and resubmit.', status: 'c' },
+      { id: 6, vendor_data_item_id: 106, revision_number: 0, submit_file: F(20, 'electrical-panel-schedules.pdf', 'application/pdf'), submitted_at: '2026-02-12T10:30:00', return_file: F(21, 'electrical-approval.pdf', 'application/pdf'), returned_at: '2026-02-20T11:45:00', comments: null, status: 'd' },
+    ];
+    this.state = {
+      view: 'home', pid: null, vid: null, rid: null,
+      delGallery: false, delTable: false,
+      modal: null, notesDraft: '', notesSaved: false, previewTab: null,
+      theme: props.theme === 'light' ? 'light' : 'dark',
+      projects, vdis, revisions,
+      nextProjectId: 4, nextVdiId: 107, nextRevId: 7, nextFileId: 100,
+    };
+  }
+
+  componentDidMount() {
+    this._onKey = (e) => { if (e.key === 'Escape' && this.state.modal) this.closeModal(); };
+    document.addEventListener('keydown', this._onKey);
+  }
+  componentWillUnmount() { document.removeEventListener('keydown', this._onKey); clearTimeout(this._noteT); }
+
+  themeVars(t) {
+    if (t === 'light') {
+      return "--bg:#f7f8fa;--panel:#ffffff;--panel-2:#fbfcfd;--grid:rgba(40,52,72,.028);"
+        + "--line:#ebedf1;--line-2:#e8eaef;--line-3:#e6e9ee;--hair:#e8eaef;--row-hover:#f1f3f6;"
+        + "--text:#1b2230;--muted:#6c7585;--faint:#8a93a3;"
+        + "--accent:#2f6fed;--accent-glow:rgba(47,111,237,.35);--accent-soft:#eef4fd;--accent-line:#c5dbf7;"
+        + "--ok:#0fae78;--ok-text:#0c8f63;--ok-line:#9ed9bd;--ok-soft:#e8f6ef;"
+        + "--bad:#d2693f;--bad-text:#c2410c;--bad-line:#f0cdb9;--bad-soft:#fbeee5;"
+        + "--info:#2f6fed;--info-text:#2f6fed;--info-line:#c5dbf7;--info-soft:#eef4fd;"
+        + "--ns:#9aa1ae;--ns-text:#6c7585;--ns-line:#e6e9ee;--ns-soft:#eef0f3;"
+        + "--warn-text:#9a6a12;--warn-line:#eccf86;--warn-soft:#fdf3e0;"
+        + "--topbar:#ffffff;--topbar-line:#e2e6ec;"
+        + "--btn-bg:#2f6fed;--btn-text:#ffffff;--btn-hover:#225fd6;"
+        + "--ghost-bg:#ffffff;--ghost-line:#dde2ea;--ghost-text:#2a313d;"
+        + "--del-bg:#c2410c;--del-line:#c2410c;--del-soft:#fbeee5;"
+        + "--disabled-bg:#f1f4f8;--disabled-text:#a7aebb;--disabled-line:#dde2ea;"
+        + "--field-bg:#fbfcfd;--field-line:#dde2ea;--field-text:#2a313d;"
+        + "--overlay:rgba(20,28,40,.34);--modal:#ffffff;--modal-line:#e8eaef;"
+        + "--stripe-a:#fbfcfd;--stripe-b:#f3f5f8;--on-bad:#ffffff;";
+    }
+    return "--bg:#0f1115;--panel:#14171d;--panel-2:#0f1217;--grid:rgba(255,255,255,.022);"
+      + "--line:#1c2026;--line-2:#20242c;--line-3:#262b34;--hair:#1c2026;--row-hover:#14181f;"
+      + "--text:#e6e9ef;--muted:#8a91a0;--faint:#6f7787;"
+      + "--accent:#4ea1ff;--accent-glow:rgba(78,161,255,.6);--accent-soft:rgba(78,161,255,.07);--accent-line:#2a3a4d;"
+      + "--ok:#24d49f;--ok-text:#3ce0ad;--ok-line:#1d6b4a;--ok-soft:rgba(36,212,159,.1);"
+      + "--bad:#e88a5f;--bad-text:#e88a5f;--bad-line:#5a3422;--bad-soft:rgba(226,138,95,.1);"
+      + "--info:#4ea1ff;--info-text:#4ea1ff;--info-line:#2a3a4d;--info-soft:rgba(78,161,255,.1);"
+      + "--ns:#5a6473;--ns-text:#9aa3b2;--ns-line:#262b34;--ns-soft:#1a1e26;"
+      + "--warn-text:#e8b15f;--warn-line:#5a4422;--warn-soft:rgba(232,177,95,.1);"
+      + "--topbar:rgba(18,21,27,.9);--topbar-line:#1c2026;"
+      + "--btn-bg:#4ea1ff;--btn-text:#08121d;--btn-hover:#6ab2ff;"
+      + "--ghost-bg:transparent;--ghost-line:#2c3340;--ghost-text:#cdd3df;"
+      + "--del-bg:#a23a17;--del-line:#5a3422;--del-soft:rgba(226,138,95,.1);"
+      + "--disabled-bg:#1a1e26;--disabled-text:#4a525f;--disabled-line:#2c3340;"
+      + "--field-bg:#0f1217;--field-line:#2c3340;--field-text:#cdd3df;"
+      + "--overlay:rgba(5,7,10,.66);--modal:#14171d;--modal-line:#262b34;"
+      + "--stripe-a:#12151b;--stripe-b:#13161d;--on-bad:#1a0d05;";
+  }
+
+  toggleTheme = () => this.setState(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }));
+
+  codeMap() {
+    return { ac:'AC \u2014 As Completed', afi:'AFI \u2014 At Final Inspection', aro:'ARO \u2014 After Receipt of Order', at:'AT \u2014 After Test', bc:'BC \u2014 Before Contract Awarded', bfa:'BFA \u2014 Before Final Acceptance', bfs:'BFS \u2014 Before Fabrication Start', pds:'PDS \u2014 Prior to Delivery on Site', ps:'PS \u2014 Prior to Shipment', pt:'PT \u2014 Prior to Test', ptc:'PTC \u2014 Prior to Construction', pti:'PTI \u2014 Prior to Installation', ptp:'PTP \u2014 Prior to Purchase', ptw:'PTW \u2014 Prior to Welding', ros:'ROS \u2014 Prior to Removal Off-Site', ts:'TS \u2014 Time of Shipment' };
+  }
+  approvalMap() { return { mandatory_approval: 'Mandatory Approval', information_only: 'Information Only' }; }
+
+  badge(status, big) {
+    const m = {
+      not_started: { l:'NOT STARTED', k:'ns' }, submitted: { l:'SUBMITTED', k:'info' },
+      a: { l:'APPROVED /A', k:'ok' }, d: { l:'APPROVED /D', k:'ok' },
+      b: { l:'REJECTED /B', k:'bad' }, c: { l:'REJECTED /C', k:'bad' },
+    };
+    const c = m[status] || m.not_started; const k = c.k;
+    return {
+      label: c.l,
+      wrap: "display:inline-flex;align-items:center;gap:7px;padding:" + (big?'5px 12px':'3px 9px') + ";border-radius:3px;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:" + (big?'12px':'10.5px') + ";letter-spacing:.05em;white-space:nowrap;background:var(--" + k + "-soft);color:var(--" + k + "-text);border:1px solid var(--" + k + "-line);",
+      dot: "width:" + (big?'8px':'6px') + ";height:" + (big?'8px':'6px') + ";border-radius:999px;background:var(--" + k + ");flex:none;",
+    };
+  }
+  heroStatus(status) {
+    const m = { not_started:{w:'Not started',c:'',k:'ns'}, submitted:{w:'Submitted',c:'',k:'info'}, a:{w:'Approved',c:'/A',k:'ok'}, d:{w:'Approved',c:'/D',k:'ok'}, b:{w:'Rejected',c:'/B',k:'bad'}, c:{w:'Rejected',c:'/C',k:'bad'} };
+    const v = m[status] || m.not_started; const k = v.k;
+    return { word: v.w, code: v.c, hasCode: !!v.c,
+      dotStyle: "width:11px;height:11px;border-radius:999px;background:var(--" + k + ");box-shadow:0 0 12px var(--" + k + ");flex:none;",
+      wordStyle: "font-weight:600;font-size:26px;letter-spacing:-.01em;color:var(--" + k + "-text);",
+      codeStyle: "font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--" + k + ");align-self:flex-end;padding-bottom:3px;" };
+  }
+
+  fmt(iso) { if (!iso) return '\u2014'; try { return new Date(iso).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric' }); } catch(e){ return iso; } }
+  fmtMono(iso) { if (!iso) return '\u2014'; try { const d=new Date(iso); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); } catch(e){ return iso; } }
+  now() { return new Date().toISOString(); }
+  guessCt(name) { const n=(name||'').toLowerCase(); if(n.endsWith('.pdf'))return 'application/pdf'; if(/\.(png|jpe?g|gif|webp|bmp)$/.test(n))return 'image/png'; if(n.endsWith('.dwg'))return 'application/acad'; return 'application/octet-stream'; }
+
+  vdisOf(pid) { return this.state.vdis.filter(v => v.project_id === pid).sort((a,b)=>a.item_number-b.item_number); }
+  revsOf(vid) { return this.state.revisions.filter(r => r.vendor_data_item_id === vid).sort((a,b)=>a.revision_number-b.revision_number); }
+  curProject() { return this.state.projects.find(p => p.id === this.state.pid) || null; }
+  curVdi() { return this.state.vdis.find(v => v.id === this.state.vid) || null; }
+
+  go(patch) {
+    const next = Object.assign({ delGallery:false, delTable:false, modal:null, notesSaved:false, previewTab:null }, patch);
+    if (next.vid != null) { const v = this.state.vdis.find(x=>x.id===next.vid); next.notesDraft = v ? (v.notes||'') : ''; }
+    if (typeof window !== 'undefined') window.scrollTo(0,0);
+    this.setState(next);
+  }
+  goHome = () => this.go({ view:'home', pid:null, vid:null, rid:null });
+  backToCurrent = () => this.go({ view:'vdi', rid:null });
+
+  toggleDelGallery = () => this.setState(s => ({ delGallery: !s.delGallery }));
+  toggleDelTable = () => this.setState(s => ({ delTable: !s.delTable }));
+  deleteProject(p) {
+    if (!window.confirm('Delete project ' + p.project_number + ' \u2014 ' + p.name + '? This removes all its vendor data items.')) return;
+    this.setState(s => {
+      const vids = s.vdis.filter(v=>v.project_id===p.id).map(v=>v.id);
+      return { projects: s.projects.filter(x=>x.id!==p.id), vdis: s.vdis.filter(v=>v.project_id!==p.id), revisions: s.revisions.filter(r=>!vids.includes(r.vendor_data_item_id)) };
+    });
+  }
+  deleteVdi(v) {
+    if (!window.confirm('Delete VDI \u201c' + v.name + '\u201d? This removes its revision history.')) return;
+    this.setState(s => ({ vdis: s.vdis.filter(x=>x.id!==v.id), revisions: s.revisions.filter(r=>r.vendor_data_item_id!==v.id) }));
+  }
+
+  openModal(modal) { this.setState({ modal: Object.assign({ error:'', dupError:false }, modal) }); }
+  closeModal = () => this.setState({ modal: null });
+  onOverlayClick = () => this.closeModal();
+  stopProp = (e) => { e.stopPropagation(); };
+  openProjectCreate = () => this.openModal({ type:'project', mode:'create', f:{} });
+  openProjectEdit = () => { const p=this.curProject(); this.openModal({ type:'project', mode:'edit', f:{ project_number:p.project_number, name:p.name, description:p.description||'' } }); };
+  openVdiCreate = () => this.openModal({ type:'vdi', mode:'create', f:{ approval_type:'mandatory_approval', submit_code:'' } });
+  openVdiEdit = () => { const v=this.curVdi(); this.openModal({ type:'vdi', mode:'edit', f:{ item_number:v.item_number, name:v.name, submittal_number:v.submittal_number||'', approval_type:v.approval_type, submit_code:v.submit_code, spec_drawing_reference:v.spec_drawing_reference||'', description:v.description||'' } }); };
+  openSubmit = () => { const v=this.curVdi(); const mode = (v.status==='b'||v.status==='c') ? 'revise' : 'submit'; this.openModal({ type:'submit', mode, f:{} }); };
+  openReturn = () => this.openModal({ type:'return', mode:'return', f:{} });
+
+  val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+  fileOf(id) { const el = document.getElementById(id); return el && el.files && el.files[0] ? el.files[0] : null; }
+  setErr(error, dupError) { this.setState(s => ({ modal: Object.assign({}, s.modal, { error, dupError: !!dupError }) })); }
+
+  submitProject = () => {
+    const project_number = this.val('pm_number'), name = this.val('pm_name'), description = this.val('pm_desc');
+    if (!project_number || !name) { this.setErr('Project number and name are required.'); return; }
+    this.setState(s => {
+      const m = s.modal;
+      if (m.mode === 'create') {
+        const id = s.nextProjectId;
+        return { projects: s.projects.concat([{ id, project_number, name, description: description||null, created_at:this.now(), updated_at:this.now() }]), nextProjectId: id+1, modal:null };
+      }
+      return { projects: s.projects.map(p => p.id===s.pid ? Object.assign({}, p, { project_number, name, description: description||null, updated_at:this.now() }) : p), modal:null };
+    });
+  };
+  submitVdi = () => {
+    const item_number = parseInt(this.val('vm_item'),10), name = this.val('vm_name');
+    const approval_type = this.val('vm_approval'), submit_code = this.val('vm_code');
+    if ((!item_number && item_number!==0) || !name) { this.setErr('Item number and name are required.'); return; }
+    if (!submit_code) { this.setErr('Select a submit code.'); return; }
+    const m = this.state.modal, pid = this.state.pid;
+    const dup = this.state.vdis.some(v => v.project_id===pid && v.item_number===item_number && (m.mode==='create' || v.id!==this.state.vid));
+    if (dup) { this.setErr('Item number already used in this project.', true); return; }
+    const fields = { item_number, name, submittal_number: this.val('vm_submittal')||null, approval_type, submit_code, spec_drawing_reference: this.val('vm_spec')||null, description: this.val('vm_desc')||null };
+    this.setState(s => {
+      if (m.mode === 'create') {
+        const id = s.nextVdiId;
+        const v = Object.assign({ id, project_id: pid, notes: this.val('vm_notes')||'', status:'not_started' }, fields);
+        return { vdis: s.vdis.concat([v]), nextVdiId: id+1, modal:null };
+      }
+      return { vdis: s.vdis.map(v => v.id===s.vid ? Object.assign({}, v, fields) : v), modal:null };
+    });
+  };
+  submitSubmit = () => {
+    const file = this.fileOf('sm_file');
+    if (!file) { this.setErr('Please choose a file to submit.'); return; }
+    const vid = this.state.vid;
+    this.setState(s => {
+      const existing = s.revisions.filter(r=>r.vendor_data_item_id===vid);
+      const nextNum = existing.length ? Math.max.apply(null, existing.map(r=>r.revision_number))+1 : 0;
+      const rev = { id: s.nextRevId, vendor_data_item_id: vid, revision_number: nextNum, submit_file: { id: s.nextFileId, original_name: file.name, content_type: file.type||this.guessCt(file.name), url: URL.createObjectURL(file) }, submitted_at: this.now(), return_file:null, returned_at:null, comments:null, status:'submitted' };
+      return { revisions: s.revisions.concat([rev]), vdis: s.vdis.map(v => v.id===vid ? Object.assign({}, v, { status:'submitted' }) : v), nextRevId: s.nextRevId+1, nextFileId: s.nextFileId+1, modal:null };
+    });
+  };
+  submitReturn = () => {
+    const code = this.val('rm_code'), file = this.fileOf('rm_file'), comments = this.val('rm_comments');
+    if (!code) { this.setErr('Select a return code.'); return; }
+    if (!file) { this.setErr('A returned file is required.'); return; }
+    const vid = this.state.vid;
+    this.setState(s => {
+      const revs = s.revisions.filter(r=>r.vendor_data_item_id===vid);
+      const latest = revs.reduce((a,b)=> b.revision_number>a.revision_number?b:a, revs[0]);
+      return {
+        revisions: s.revisions.map(r => r.id===latest.id ? Object.assign({}, r, { return_file: { id: s.nextFileId, original_name: file.name, content_type: file.type||this.guessCt(file.name), url: URL.createObjectURL(file) }, returned_at: this.now(), comments: comments||null, status: code }) : r),
+        vdis: s.vdis.map(v => v.id===vid ? Object.assign({}, v, { status: code }) : v),
+        nextFileId: s.nextFileId+1, modal:null, previewTab:'return',
+      };
+    });
+  };
+
+  onNotesInput = (e) => { const val = e.target.value; this.setState({ notesDraft: val, notesSaved:false }); };
+  saveNotes = () => {
+    const vid = this.state.vid, draft = this.state.notesDraft;
+    this.setState(s => ({ vdis: s.vdis.map(v => v.id===vid ? Object.assign({}, v, { notes: draft }) : v), notesSaved:true }));
+    clearTimeout(this._noteT); this._noteT = setTimeout(()=>this.setState({ notesSaved:false }), 2200);
+  };
+  setPreviewTab = (tab) => this.setState({ previewTab: tab });
+
+  buildPreviewFile(file, title) {
+    if (!file) return { isEmpty:true, title };
+    const ct = file.content_type || '';
+    const isPdf = ct === 'application/pdf';
+    const isImg = ct.indexOf('image/') === 0;
+    const base = { title, hasFile:true, fileName: file.original_name, url: file.url || '#', apiPath: '/api/files/' + file.id, isEmpty:false, isPdfLive:false, isImageLive:false, isPlaceholder:false, isDownload:false, ext: (file.original_name.split('.').pop()||'FILE').toUpperCase() };
+    if (isPdf && file.url) return Object.assign(base, { isPdfLive:true });
+    if (isImg && file.url) return Object.assign(base, { isImageLive:true });
+    if (isPdf || isImg) return Object.assign(base, { isPlaceholder:true, phKind: isPdf?'PDF':'IMAGE' });
+    return Object.assign(base, { isDownload:true });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const view = s.view;
+    const isHome = view === 'home', isProject = view === 'project';
+    const isVdi = view === 'vdi' || view === 'historical', isHistorical = view === 'historical';
+    const proj = this.curProject(), vdi = this.curVdi();
+    const theme = s.theme;
+
+    const v = {
+      isHome, isProject, isVdi, isHistorical,
+      goHome: this.goHome, backToCurrent: this.backToCurrent, openProjectCreate: this.openProjectCreate,
+      toggleTheme: this.toggleTheme, themeBtnLabel: theme==='dark' ? 'Light' : 'Dark', themeBtnIcon: theme==='dark' ? '\u2600' : '\u263e',
+      shell: this.themeVars(theme) + "min-height:100vh;background:var(--bg);color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:40px 40px;background-attachment:fixed;",
+      primaryBtn: "padding:9px 16px;border-radius:4px;border:1px solid var(--btn-bg);background:var(--btn-bg);color:var(--btn-text);font-weight:600;font-size:13px;letter-spacing:.02em;cursor:pointer;",
+      ghostBtn: "padding:8px 15px;border-radius:4px;border:1px solid var(--ghost-line);background:var(--ghost-bg);color:var(--ghost-text);font-weight:600;font-size:13px;cursor:pointer;flex:none;",
+      inputStyle: "width:100%;padding:10px 12px;border:1px solid var(--field-line);border-radius:4px;font-size:14px;background:var(--field-bg);color:var(--field-text);outline:none;font-family:'Space Grotesk',sans-serif;",
+      emptyStyle: "text-align:center;padding:80px 20px;border:1px solid var(--line-3);border-radius:4px;background:var(--panel);margin-bottom:60px;",
+    };
+
+    // crumbs
+    const crumbs = [];
+    if (isHome) { crumbs.push({ label:'PROJECTS', isText:true, showSep:false }); }
+    else if (isProject && proj) {
+      crumbs.push({ label:'HOME', isLink:true, onClick:this.goHome, showSep:false });
+      crumbs.push({ label: proj.project_number, isText:true, showSep:true });
+    } else if (isVdi && proj && vdi) {
+      crumbs.push({ label:'HOME', isLink:true, onClick:this.goHome, showSep:false });
+      crumbs.push({ label: proj.project_number, isLink:true, onClick:()=>this.go({ view:'project', pid:proj.id, vid:null, rid:null }), showSep:true });
+      crumbs.push({ label: vdi.name.toUpperCase(), isText:true, showSep:true });
+    }
+    v.crumbs = crumbs;
+    v.showVdiTag = isVdi && !!vdi;
+    v.vdiTag = vdi ? ('VDI-' + vdi.id) : '';
+
+    // HOME
+    const allProjects = s.projects;
+    v.hasProjects = allProjects.length > 0; v.noProjects = allProjects.length === 0;
+    v.projectCountLabel = allProjects.length + (allProjects.length===1?' PROJECT':' PROJECTS');
+    const delG = s.delGallery;
+    v.toggleDelGallery = this.toggleDelGallery;
+    v.delGalleryBtnLabel = delG ? 'Done' : 'Delete';
+    v.delGalleryBtnStyle = "padding:9px 16px;border-radius:4px;font-weight:600;font-size:13px;cursor:pointer;border:1px solid " + (delG?'var(--del-line)':'var(--ghost-line)') + ";background:" + (delG?'var(--del-bg)':'var(--ghost-bg)') + ";color:" + (delG?'#fff':'var(--muted)') + ";";
+    v.projectCards = allProjects.map(p => {
+      const items = this.vdisOf(p.id);
+      const open = items.filter(it => it.status==='not_started' || it.status==='b' || it.status==='c' || it.status==='submitted').length;
+      return {
+        id:p.id, name:p.name, project_number:p.project_number,
+        numColor: delG ? 'var(--bad-text)' : 'var(--accent)',
+        itemsLabel: items.length + (items.length===1?' ITEM':' ITEMS'),
+        cue: delG ? 'CLICK TO DELETE' : (open>0 ? open + ' OPEN' : 'ALL CLEAR'),
+        cueColor: delG ? 'var(--bad-text)' : (open>0 ? 'var(--info-text)' : 'var(--ok-text)'),
+        onClick: delG ? (()=>this.deleteProject(p)) : (()=>this.go({ view:'project', pid:p.id, vid:null, rid:null })),
+        cardStyle: "background:var(--panel);border:1px solid " + (delG?'var(--del-line)':'var(--line-3)') + ";border-radius:4px;padding:18px 18px 16px;cursor:pointer;transition:border-color .12s;",
+      };
+    });
+
+    // PROJECT
+    if (proj) {
+      v.proj = { project_number: proj.project_number, name: proj.name, description: proj.description, hasDescription: !!proj.description };
+      v.openProjectEdit = this.openProjectEdit; v.openVdiCreate = this.openVdiCreate;
+      const delT = s.delTable; v.toggleDelTable = this.toggleDelTable;
+      v.delTableBtnLabel = delT ? 'Done' : 'Delete';
+      v.delTableBtnStyle = "padding:9px 16px;border-radius:4px;font-weight:600;font-size:13px;cursor:pointer;border:1px solid " + (delT?'var(--del-line)':'var(--ghost-line)') + ";background:" + (delT?'var(--del-bg)':'var(--ghost-bg)') + ";color:" + (delT?'#fff':'var(--muted)') + ";";
+      const rows = this.vdisOf(proj.id);
+      v.hasVdis = rows.length > 0; v.noVdis = rows.length === 0;
+      const cmap = this.codeMap();
+      v.vdiRows = rows.map(r => ({
+        id:r.id, name:r.name, item_number:r.item_number, badge: this.badge(r.status, false),
+        submittalDisplay: r.submittal_number || '\u2014',
+        submittalColor: r.submittal_number ? 'var(--muted)' : 'var(--faint)',
+        codeShort: r.submit_code.toUpperCase(), codeTitle: cmap[r.submit_code] || r.submit_code,
+        rowStyle: "cursor:pointer;transition:background .1s;" + (delT ? "box-shadow:inset 3px 0 0 var(--bad);background:var(--bad-soft);" : ""),
+        onClick: delT ? (()=>this.deleteVdi(r)) : (()=>this.go({ view:'vdi', pid:proj.id, vid:r.id, rid:null })),
+      }));
+    }
+
+    // VDI (data prepared here; markup added in VDI_SLOT)
+    if (vdi) {
+      const cmap = this.codeMap(), amap = this.approvalMap();
+      v.openVdiEdit = this.openVdiEdit;
+      const revs = this.revsOf(vdi.id);
+      const latest = revs.length ? revs[revs.length-1] : null;
+      const chosen = isHistorical ? (revs.find(r=>r.id===s.rid) || latest) : latest;
+      const displayStatus = isHistorical ? (chosen ? chosen.status : vdi.status) : vdi.status;
+      v.vdi = { name: vdi.name, item_number: vdi.item_number,
+        submittalDisplay: vdi.submittal_number || '\u2014', hasSubmittal: !!vdi.submittal_number,
+        approval_type: amap[vdi.approval_type], submit_code_label: cmap[vdi.submit_code],
+        submit_code: vdi.submit_code.toUpperCase(),
+        spec: vdi.spec_drawing_reference || '\u2014', hasSpec: !!vdi.spec_drawing_reference,
+        description: vdi.description || '\u2014', hasDescription: !!vdi.description };
+      v.hero = this.heroStatus(displayStatus);
+
+      const st = vdi.status;
+      const baseBtn = "padding:13px 26px;border-radius:4px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;letter-spacing:.03em;";
+      let lc;
+      if (isHistorical) lc = { label:'SUBMIT', disabled:true, note:'ACTIONS AVAILABLE ONLY ON CURRENT VDI.', onClick:()=>{}, style: baseBtn + "border:1px solid var(--disabled-line);background:var(--disabled-bg);color:var(--disabled-text);cursor:not-allowed;" };
+      else if (st === 'not_started') lc = { label:'SUBMIT', disabled:false, note:'UPLOAD THE FIRST REVISION AND SEND TO BUYER.', onClick:this.openSubmit, style: baseBtn + "border:1px solid var(--btn-bg);background:var(--btn-bg);color:var(--btn-text);cursor:pointer;" };
+      else if (st === 'submitted') lc = { label:'RETURN', disabled:false, note:'RECORD THE BUYER\u2019S VERDICT FOR THIS REVISION.', onClick:this.openReturn, style: baseBtn + "border:1px solid var(--info);background:var(--info);color:var(--btn-text);cursor:pointer;" };
+      else if (st === 'b' || st === 'c') lc = { label:'REVISE', disabled:false, note:'UPLOAD A CORRECTED REVISION AND RESUBMIT.', onClick:this.openSubmit, style: baseBtn + "border:1px solid var(--bad);background:var(--bad);color:var(--on-bad);cursor:pointer;" };
+      else lc = { label:'SUBMIT', disabled:true, note:'SEQUENCE COMPLETE \u00b7 NO ACTION REQUIRED.', onClick:()=>{}, style: baseBtn + "border:1px solid var(--disabled-line);background:var(--disabled-bg);color:var(--disabled-text);cursor:not-allowed;" };
+      v.lifecycle = lc;
+
+      v.notesReadonly = isHistorical; v.notesDraft = s.notesDraft; v.notesSaved = s.notesSaved;
+      const dirty = !isHistorical && (s.notesDraft !== (vdi.notes || ''));
+      v.saveNotesDisabled = !dirty;
+      v.notesStyle = "width:100%;height:84px;padding:11px 12px;border:1px solid var(--field-line);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.55;resize:vertical;outline:none;background:var(--field-bg);color:" + (isHistorical?'var(--faint)':'var(--field-text)') + ";";
+      v.saveNotesStyle = "padding:8px 15px;border-radius:4px;font-weight:600;font-size:12.5px;font-family:'JetBrains Mono',monospace;letter-spacing:.04em;border:1px solid " + (dirty?'var(--accent-line)':'var(--disabled-line)') + ";background:" + (dirty?'var(--accent-soft)':'var(--disabled-bg)') + ";color:" + (dirty?'var(--accent)':'var(--disabled-text)') + ";cursor:" + (dirty?'pointer':'not-allowed') + ";";
+
+      v.hasComments = !!(chosen && chosen.comments);
+      v.comments = chosen ? (chosen.comments || '') : '';
+
+      const hasSubmitFile = !!(chosen && chosen.submit_file), hasReturnFile = !!(chosen && chosen.return_file);
+      const showTabs = hasSubmitFile && hasReturnFile;
+      let tab = s.previewTab;
+      if (tab !== 'submit' && tab !== 'return') tab = hasReturnFile ? 'return' : 'submit';
+      if (tab === 'return' && !hasReturnFile) tab = 'submit';
+      if (tab === 'submit' && !hasSubmitFile) tab = 'return';
+      const activeFile = chosen ? (tab === 'submit' ? chosen.submit_file : chosen.return_file) : null;
+      v.preview = this.buildPreviewFile(activeFile, isHistorical ? 'REVISION FILE' : 'CURRENT FILE');
+      v.preview.showTabs = showTabs;
+      const tabBase = "padding:5px 12px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:11px;letter-spacing:.04em;cursor:pointer;";
+      v.preview.submitTabStyle = tab === 'submit' ? (tabBase + "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);") : (tabBase + "border:1px solid var(--line-3);background:transparent;color:var(--muted);");
+      v.preview.returnTabStyle = tab === 'return' ? (tabBase + "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);") : (tabBase + "border:1px solid var(--line-3);background:transparent;color:var(--muted);");
+      v.setSubmitTab = () => this.setPreviewTab('submit');
+      v.setReturnTab = () => this.setPreviewTab('return');
+
+      v.hasTimeline = revs.length > 0; v.noTimeline = revs.length === 0;
+      v.timeline = revs.map(r => {
+        const isCur = (!isHistorical && latest && r.id===latest.id) || (isHistorical && chosen && r.id===chosen.id);
+        const k = (r.status==='a'||r.status==='d') ? 'ok' : ((r.status==='b'||r.status==='c') ? 'bad' : 'info');
+        return {
+          revLabel: 'REV ' + r.revision_number, badge: this.badge(r.status, false), isCurrent: isCur,
+          dates: 'SUB ' + this.fmtMono(r.submitted_at) + (r.returned_at ? (' \u00b7 RET ' + this.fmtMono(r.returned_at)) : ' \u00b7 AWAITING RETURN'),
+          dotStyle: "position:absolute;left:-23px;top:3px;width:13px;height:13px;border-radius:999px;background:var(--bg);border:2px solid var(--" + k + ");" + (isCur ? "box-shadow:0 0 10px var(--" + k + ");" : ""),
+          onClick: (latest && r.id===latest.id) ? (()=>this.go({ view:'vdi', pid:vdi.project_id, vid:vdi.id, rid:null })) : (()=>this.go({ view:'historical', pid:vdi.project_id, vid:vdi.id, rid:r.id })),
+        };
+      });
+    }
+
+    // MODAL (data; markup in MODAL_SLOT)
+    v.modalOpen = !!s.modal;
+    v.closeModal = this.closeModal; v.onOverlayClick = this.onOverlayClick; v.stopProp = this.stopProp;
+    v.approvalOptions = [ {value:'mandatory_approval', label:'Mandatory Approval'}, {value:'information_only', label:'Information Only'} ];
+    v.codeOptions = Object.keys(this.codeMap()).map(k => ({ value:k, label:this.codeMap()[k] }));
+    v.returnOptions = [ {value:'a',label:'A \u2014 Approved'}, {value:'b',label:'B \u2014 Rejected, resubmit'}, {value:'c',label:'C \u2014 Rejected, resubmit'}, {value:'d',label:'D \u2014 Approved'} ];
+    if (s.modal) {
+      const m = s.modal;
+      const isProjectM = m.type==='project', isVdiM = m.type==='vdi', isSubmitM = m.type==='submit', isReturnM = m.type==='return';
+      let title='', intro='', submitLabel='', onSubmit=()=>{};
+      if (isProjectM) { title = m.mode==='create' ? 'New Project' : 'Edit Project'; submitLabel = m.mode==='create' ? 'Create Project' : 'Save Changes'; onSubmit = this.submitProject; }
+      else if (isVdiM) { title = m.mode==='create' ? 'New Vendor Data Item' : 'Edit Vendor Data Item'; submitLabel = m.mode==='create' ? 'Create VDI' : 'Save Changes'; onSubmit = this.submitVdi; }
+      else if (isSubmitM) { title = m.mode==='revise' ? 'Revise & Resubmit' : 'Submit to Buyer'; intro = m.mode==='revise' ? 'Upload a corrected revision for ' + (vdi?vdi.name:'this item') + '.' : 'Upload the first revision of ' + (vdi?vdi.name:'this item') + '.'; submitLabel = m.mode==='revise' ? 'Resubmit' : 'Submit'; onSubmit = this.submitSubmit; }
+      else if (isReturnM) { title = 'Record Buyer Return'; intro = 'Log the buyer\u2019s verdict and returned file for ' + (vdi?vdi.name:'this item') + '.'; submitLabel = 'Record Return'; onSubmit = this.submitReturn; }
+      v.modal = { title, intro, hasIntro: !!intro, submitLabel, onSubmit, isProject:isProjectM, isVdi:isVdiM, isSubmit:isSubmitM, isReturn:isReturnM, f: m.f || {}, hasError: !!m.error, error: m.error || '', dupError: !!m.dupError, showNotes: isVdiM && m.mode==='create' };
+    } else {
+      v.modal = { title:'', intro:'', hasIntro:false, submitLabel:'', onSubmit:()=>{}, isProject:false, isVdi:false, isSubmit:false, isReturn:false, f:{}, hasError:false, error:'', dupError:false, showNotes:false };
+    }
+
+    return v;
+  }
+}
+</script>
+</body>
+</html>
