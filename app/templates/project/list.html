@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/modal.html" import form_modal %}
 
 {% block title %}Projects · Onyx{% endblock %}
 
@@ -10,16 +11,31 @@
     <p class="header-count">{{ cards | length }} PROJECT{{ '' if cards | length == 1 else 'S' }}</p>
   </div>
   <div class="header-actions">
-    <a class="btn-primary" href="#">+ New Project</a>
+    {% if cards %}
+    <button type="button" class="btn-ghost delete-toggle" data-delete-toggle="project-grid">Delete</button>
+    {% endif %}
+    <button type="button"
+            class="btn-primary"
+            data-modal-open="project-modal"
+            data-mode="create"
+            data-title="New Project"
+            data-submit-label="Create Project"
+            data-method="POST"
+            data-url="/api/projects">+ New Project</button>
   </div>
 </section>
 
 <div class="header-rule"></div>
 
 {% if cards %}
-<div class="card-grid">
+<div class="card-grid" id="project-grid" data-delete-target>
   {% for card in cards %}
-  <a class="project-card" href="/projects/{{ card.project.id }}">
+  <a class="project-card"
+     href="/projects/{{ card.project.id }}"
+     data-project-card
+     data-project-id="{{ card.project.id }}"
+     data-project-number="{{ card.project.project_number }}"
+     data-project-name="{{ card.project.name }}">
     <div class="card-top">
       <span class="card-number">{{ card.project.project_number }}</span>
       {% if card.open_count %}
@@ -27,6 +43,7 @@
       {% else %}
         <span class="card-cue cue-clear">ALL CLEAR</span>
       {% endif %}
+      <span class="card-delete-cue">CLICK TO DELETE</span>
     </div>
     <h2 class="card-name">{{ card.project.name }}</h2>
     <div class="card-footer">{{ card.total_count }} ITEM{{ '' if card.total_count == 1 else 'S' }}</div>
@@ -37,7 +54,31 @@
 <div class="empty-state">
   <p class="empty-title">No projects yet.</p>
   <p class="empty-sub">Create your first project to start tracking vendor data items.</p>
-  <a class="btn-primary" href="#">+ New Project</a>
+  <button type="button"
+          class="btn-primary"
+          data-modal-open="project-modal"
+          data-mode="create"
+          data-title="New Project"
+          data-submit-label="Create Project"
+          data-method="POST"
+          data-url="/api/projects">+ New Project</button>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block modals %}
+{% call form_modal("project-modal", "New Project", "Create Project", "Project number and name are required.") %}
+  <label class="field">
+    <span class="field-label">Project Number <span class="req">*</span></span>
+    <input type="text" name="project_number" class="field-input" placeholder="26-131" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Name <span class="req">*</span></span>
+    <input type="text" name="name" class="field-input" placeholder="Acme Plant Expansion" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea name="description" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
 {% endblock %}

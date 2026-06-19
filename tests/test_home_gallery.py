@@ -122,3 +122,50 @@ async def test_invalid_theme_cookie_falls_back_to_dark(client: AsyncClient) -> N
 
     assert response.status_code == 200
     assert 'data-theme="dark"' in response.text
+
+
+async def test_gallery_renders_project_modal_and_create_trigger(
+    client: AsyncClient,
+) -> None:
+    """The Home page carries the project modal and a New Project create trigger."""
+    response = await client.get("/")
+
+    body = response.text
+    # The reusable modal shell is mounted with the project fields.
+    assert 'data-modal="project-modal"' in body
+    assert 'name="project_number"' in body
+    assert 'name="name"' in body
+    assert 'name="description"' in body
+    # The create trigger points the fetch helper at the JSON API.
+    assert 'data-modal-open="project-modal"' in body
+    assert 'data-method="POST"' in body
+    assert 'data-url="/api/projects"' in body
+
+
+async def test_gallery_arms_delete_mode_with_card_metadata(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """With projects present, the delete toggle and per-card delete data appear."""
+    project_id = await seed_project(
+        session, project_number="26-131", name="Acme Plant Expansion"
+    )
+    await session.commit()
+
+    response = await client.get("/")
+
+    body = response.text
+    assert "data-delete-toggle" in body
+    assert f'data-project-id="{project_id}"' in body
+    assert 'data-project-number="26-131"' in body
+    assert 'data-project-name="Acme Plant Expansion"' in body
+
+
+async def test_empty_gallery_has_create_trigger_but_no_delete_toggle(
+    client: AsyncClient,
+) -> None:
+    """The empty state offers create but hides delete-mode (nothing to delete)."""
+    response = await client.get("/")
+
+    body = response.text
+    assert 'data-modal-open="project-modal"' in body
+    assert "data-delete-toggle" not in body

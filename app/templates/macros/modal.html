@@ -1,0 +1,24 @@
+{#
+  Reusable form-modal shell (overlay + panel). The body — the form fields — is
+  passed in via {% call %}. Title and submit label are defaults; app.js
+  overwrites them per mode (create/edit) when the modal opens. The shell is
+  cross-domain: every modal in the app is built by calling this macro.
+#}
+{% macro form_modal(modal_id, default_title="", default_submit="Save", required_message="") %}
+<div class="modal-overlay" data-modal="{{ modal_id }}" hidden>
+  <form class="modal-panel" data-modal-form data-required-message="{{ required_message }}">
+    <header class="modal-header">
+      <h2 class="modal-title" data-modal-title>{{ default_title }}</h2>
+      <button type="button" class="modal-close" data-modal-close aria-label="Close">&#10005;</button>
+    </header>
+    <div class="modal-body">
+      <div class="modal-error" data-modal-error hidden></div>
+      {{ caller() }}
+    </div>
+    <footer class="modal-footer">
+      <button type="button" class="btn-ghost" data-modal-close>Cancel</button>
+      <button type="submit" class="btn-primary" data-modal-submit>{{ default_submit }}</button>
+    </footer>
+  </form>
+</div>
+{% endmacro %}
