@@ -1,8 +1,15 @@
 {% extends "base.html" %}
 {% from "macros/badge.html" import status_badge %}
+{% from "macros/modal.html" import form_modal %}
 
 {% set returned_codes = ["a", "b", "c", "d"] %}
 {% set is_returned = vdi.status.value in returned_codes %}
+
+{% set status_value = vdi.status.value %}
+{% set is_historical = historical | default(false) %}
+{% set can_submit = status_value in ["not_started", "b", "c"] %}
+{% set can_return = status_value == "submitted" %}
+{% set is_revise = status_value in ["b", "c"] %}
 
 {% block title %}{{ vdi.name }} · Onyx{% endblock %}
 
@@ -90,6 +97,49 @@
 
 <div class="plain-rule"></div>
 
+<section class="lifecycle-row">
+  <p class="section-label lifecycle-label">LIFECYCLE</p>
+  {% if is_historical %}
+  <button type="button" class="lifecycle-btn" disabled>Submit</button>
+  <p class="lifecycle-note">ACTIONS AVAILABLE ONLY ON CURRENT VDI.</p>
+  {% elif status_value == "not_started" %}
+  <button type="button"
+          class="lifecycle-btn lifecycle-accent"
+          data-modal-open="submit-modal"
+          data-title="Submit Revision"
+          data-intro="Submit the first revision of {{ vdi.name }}."
+          data-submit-label="Submit"
+          data-method="POST"
+          data-url="/api/vdi/{{ vdi.id }}/submit">Submit</button>
+  <p class="lifecycle-note">UPLOAD THE FIRST REVISION AND SEND TO BUYER.</p>
+  {% elif is_revise %}
+  <button type="button"
+          class="lifecycle-btn lifecycle-bad"
+          data-modal-open="submit-modal"
+          data-title="Revise Submittal"
+          data-intro="Upload a corrected revision for {{ vdi.name }}."
+          data-submit-label="Resubmit"
+          data-method="POST"
+          data-url="/api/vdi/{{ vdi.id }}/submit">Revise</button>
+  <p class="lifecycle-note">UPLOAD A CORRECTED REVISION AND RESUBMIT.</p>
+  {% elif can_return %}
+  <button type="button"
+          class="lifecycle-btn lifecycle-info"
+          data-modal-open="return-modal"
+          data-title="Record Buyer Return"
+          data-intro="Record the buyer's verdict for {{ vdi.name }}."
+          data-submit-label="Record Return"
+          data-method="POST"
+          data-url="/api/vdi/{{ vdi.id }}/return">Return</button>
+  <p class="lifecycle-note">RECORD THE BUYER'S VERDICT FOR THIS REVISION.</p>
+  {% else %}
+  <button type="button" class="lifecycle-btn" disabled>Submit</button>
+  <p class="lifecycle-note">SEQUENCE COMPLETE · NO ACTION REQUIRED.</p>
+  {% endif %}
+</section>
+
+<div class="plain-rule"></div>
+
 <section class="vdi-columns">
   <div class="vdi-col-left">
     {% if rev and rev.comments %}
@@ -142,9 +192,19 @@
       {% endif %}
     </div>
 
-    <div class="notes">
-      <p class="section-label">NOTES</p>
-      <textarea class="notes-text" rows="4" readonly>{{ vdi.notes or "" }}</textarea>
+    <div class="notes"{% if not is_historical %} data-notes data-notes-url="/api/vdi/{{ vdi.id }}"{% endif %}>
+      <div class="notes-head">
+        <p class="section-label">NOTES</p>
+        {% if is_historical %}<span class="notes-readonly">READ-ONLY</span>{% endif %}
+        <span class="notes-saved" data-notes-saved hidden>SAVED &#10003;</span>
+      </div>
+      <textarea class="notes-text"
+                rows="4"
+                data-notes-input
+                {% if is_historical %}disabled{% endif %}>{{ vdi.notes or "" }}</textarea>
+      {% if not is_historical %}
+      <button type="button" class="save-notes" data-notes-save disabled>Save notes</button>
+      {% endif %}
     </div>
   </div>
 
@@ -174,4 +234,37 @@
     {% endif %}
   </div>
 </section>
+{% endblock %}
+
+{% block modals %}
+{% if not is_historical %}
+{% call form_modal("submit-modal", "Submit Revision", "Submit", "A file is required.", "Submit the first revision.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Submittal File <span class="req">*</span></span>
+    <input type="file" name="file" class="field-file" required>
+  </label>
+  <p class="modal-helper">Uploads as a new revision and moves this item to <strong>Submitted</strong>.</p>
+{% endcall %}
+
+{% call form_modal("return-modal", "Record Buyer Return", "Record Return", "A return code and file are required.", "Record the buyer's verdict for this revision.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Return Code <span class="req">*</span></span>
+    <select name="return_code" class="field-input" required>
+      <option value="" disabled selected>Select…</option>
+      <option value="a">A — Approved</option>
+      <option value="b">B — Rejected, resubmit</option>
+      <option value="c">C — Rejected, resubmit</option>
+      <option value="d">D — Approved</option>
+    </select>
+  </label>
+  <label class="field">
+    <span class="field-label">Returned File <span class="req">*</span></span>
+    <input type="file" name="file" class="field-file" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Comments</span>
+    <textarea name="comments" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+{% endif %}
 {% endblock %}

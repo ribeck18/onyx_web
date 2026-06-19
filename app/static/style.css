@@ -799,6 +799,137 @@ a { color: inherit; text-decoration: none; }
   resize: vertical;
   outline: none;
 }
+.notes-text:disabled { color: var(--faint); }
+
+.notes-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.notes-head .section-label { margin-bottom: 14px; }
+
+.notes-readonly {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  color: var(--warn-text);
+  border: 1px solid var(--warn-line);
+  background: var(--warn-soft);
+}
+
+.notes-saved {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--ok-text);
+}
+.notes-saved[hidden] { display: none; }
+
+.save-notes {
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  cursor: pointer;
+}
+.save-notes:disabled {
+  color: var(--disabled-text);
+  background: var(--disabled-bg);
+  border-color: var(--disabled-line);
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- lifecycle */
+
+.lifecycle-row {
+  padding: 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.lifecycle-label {
+  margin: 0;
+  width: 120px;
+}
+
+.lifecycle-btn {
+  padding: 13px 26px;
+  border-radius: 4px;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.lifecycle-accent {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-color: var(--btn-bg);
+}
+.lifecycle-accent:hover { background: var(--btn-hover); border-color: var(--btn-hover); }
+.lifecycle-info {
+  background: var(--info);
+  color: var(--btn-text);
+  border-color: var(--info);
+}
+.lifecycle-bad {
+  background: var(--bad);
+  color: var(--on-bad);
+  border-color: var(--bad);
+}
+.lifecycle-btn:disabled {
+  background: var(--disabled-bg);
+  color: var(--disabled-text);
+  border-color: var(--disabled-line);
+  cursor: not-allowed;
+}
+
+.lifecycle-note {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: .06em;
+  color: var(--faint);
+}
+
+/* ---------------------------------------------------------------- modal intro / file input */
+
+.modal-intro {
+  margin: 8px 24px 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.modal-intro[hidden] { display: none; }
+
+.modal-helper {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.field-file {
+  width: 100%;
+  padding: 14px;
+  border: 1px dashed var(--field-line);
+  border-radius: 4px;
+  background: var(--field-bg);
+  color: var(--field-text);
+  cursor: pointer;
+}
 
 /* ---------------------------------------------------------------- revision timeline */
 

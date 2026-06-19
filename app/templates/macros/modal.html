@@ -4,13 +4,14 @@
   overwrites them per mode (create/edit) when the modal opens. The shell is
   cross-domain: every modal in the app is built by calling this macro.
 #}
-{% macro form_modal(modal_id, default_title="", default_submit="Save", required_message="") %}
+{% macro form_modal(modal_id, default_title="", default_submit="Save", required_message="", default_intro="", multipart=false) %}
 <div class="modal-overlay" data-modal="{{ modal_id }}" hidden>
-  <form class="modal-panel" data-modal-form data-required-message="{{ required_message }}">
+  <form class="modal-panel" data-modal-form data-required-message="{{ required_message }}"{% if multipart %} data-encoding="multipart"{% endif %}>
     <header class="modal-header">
       <h2 class="modal-title" data-modal-title>{{ default_title }}</h2>
       <button type="button" class="modal-close" data-modal-close aria-label="Close">&#10005;</button>
     </header>
+    <p class="modal-intro" data-modal-intro{% if not default_intro %} hidden{% endif %}>{{ default_intro }}</p>
     <div class="modal-body">
       <div class="modal-error" data-modal-error hidden></div>
       {{ caller() }}

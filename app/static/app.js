@@ -35,6 +35,31 @@ async function send_json(method, url, payload) {
   return fetch(url, options);
 }
 
+// Multipart sender for the file-upload modals (submit/return). The browser sets
+// the multipart boundary, so no Content-Type is provided. Blank optional fields
+// are dropped so an empty comments box arrives as absent, not "".
+async function send_form(method, url, form) {
+  const data = new FormData(form);
+  for (const [name, value] of [...data.entries()]) {
+    if (value === "") {
+      data.delete(name);
+    }
+  }
+  return fetch(url, { method, body: data });
+}
+
+function json_payload(form) {
+  // Named, enabled fields into an object, omitting blank optional values.
+  const payload = {};
+  for (const field of form.querySelectorAll("[name]:not([disabled])")) {
+    const value = field.value.trim();
+    if (value !== "" || field.required) {
+      payload[field.name] = value;
+    }
+  }
+  return payload;
+}
+
 async function error_message_from(response) {
   // FastAPI puts the reason in `detail` (a string, or a list for validation
   // errors). Fall back to a generic line if the body is not the expected shape.
@@ -93,6 +118,13 @@ function configure_modal(overlay, trigger) {
   }
   if (submit && trigger.dataset.submitLabel) {
     submit.textContent = trigger.dataset.submitLabel;
+  }
+
+  // The optional intro line adapts per trigger (e.g. Submit vs Revise copy).
+  const intro = overlay.querySelector("[data-modal-intro]");
+  if (intro) {
+    intro.textContent = trigger.dataset.intro || "";
+    intro.hidden = !trigger.dataset.intro;
   }
 
   // Some fields belong to create mode only (e.g. VDI notes have their own box on
@@ -154,18 +186,11 @@ async function submit_modal_form(form) {
     return;
   }
 
-  // Collect named fields into a JSON payload, omitting blank optional values and
-  // disabled (mode-hidden) fields.
-  const payload = {};
-  for (const field of form.querySelectorAll("[name]:not([disabled])")) {
-    const value = field.value.trim();
-    if (value !== "" || field.required) {
-      payload[field.name] = value;
-    }
-  }
-
   clear_errors(form);
-  const response = await send_json(form.dataset.method, form.dataset.url, payload);
+  const response =
+    form.dataset.encoding === "multipart"
+      ? await send_form(form.dataset.method, form.dataset.url, form)
+      : await send_json(form.dataset.method, form.dataset.url, json_payload(form));
   if (response.ok) {
     location.reload();
     return;
@@ -227,6 +252,38 @@ async function delete_vdi_row(row) {
   if (response.ok) {
     location.reload();
   }
+}
+
+// ------------------------------------------------------------------- notes
+
+// Notes are the one in-place mutation: PATCH the notes, then update the saved
+// baseline and flash "Saved" without reloading the page.
+async function save_notes(button) {
+  const box = button.closest("[data-notes]");
+  const input = box.querySelector("[data-notes-input]");
+  const response = await send_json("PATCH", box.dataset.notesUrl, {
+    notes: input.value,
+  });
+  if (!response.ok) {
+    return;
+  }
+  // The saved value becomes the new baseline so Save re-disables until the next
+  // edit; defaultValue is what the "changed?" check compares against.
+  input.defaultValue = input.value;
+  button.disabled = true;
+  flash_saved(box);
+}
+
+function flash_saved(box) {
+  const saved = box.querySelector("[data-notes-saved]");
+  if (!saved) {
+    return;
+  }
+  saved.hidden = false;
+  clearTimeout(box.saved_timer);
+  box.saved_timer = setTimeout(() => {
+    saved.hidden = true;
+  }, 2200);
 }
 
 // ----------------------------------------------------------- preview tabs
@@ -302,6 +359,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const notes_save = event.target.closest("[data-notes-save]");
+  if (notes_save) {
+    save_notes(notes_save);
+    return;
+  }
+
   // While a grid is armed, a card click deletes instead of navigating.
   const card = event.target.closest("[data-project-card]");
   if (card && card.closest(".is-deleting")) {
@@ -327,6 +390,18 @@ document.addEventListener("submit", (event) => {
   if (form) {
     event.preventDefault();
     submit_modal_form(form);
+  }
+});
+
+// Save notes is enabled only while the textarea differs from the saved value.
+document.addEventListener("input", (event) => {
+  const notes_input = event.target.closest("[data-notes-input]");
+  if (notes_input) {
+    const box = notes_input.closest("[data-notes]");
+    const save = box.querySelector("[data-notes-save]");
+    if (save) {
+      save.disabled = notes_input.value === notes_input.defaultValue;
+    }
   }
 });
 

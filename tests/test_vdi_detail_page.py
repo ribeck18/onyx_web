@@ -295,3 +295,83 @@ async def test_timeline_empty_when_not_started(
     response = await client.get(f"/vdi/{vdi_id}")
 
     assert "NO REVISIONS YET." in response.text
+
+
+@pytest.mark.parametrize(
+    ("status", "label", "url_fragment"),
+    [
+        (SubmitStatus.NOT_STARTED, "Submit", "/submit"),
+        (SubmitStatus.SUBMITTED, "Return", "/return"),
+        (SubmitStatus.B, "Revise", "/submit"),
+        (SubmitStatus.C, "Revise", "/submit"),
+    ],
+)
+async def test_lifecycle_button_label_per_actionable_status(
+    client: AsyncClient,
+    session: AsyncSession,
+    status: SubmitStatus,
+    label: str,
+    url_fragment: str,
+) -> None:
+    """Each actionable status drives the right enabled button and endpoint."""
+    vdi_id = await make_vdi_row(session, status=status)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert f">{label}</button>" in body
+    assert f'data-url="/api/vdi/{vdi_id}{url_fragment}"' in body
+
+
+@pytest.mark.parametrize("status", [SubmitStatus.A, SubmitStatus.D])
+async def test_lifecycle_button_disabled_when_terminal(
+    client: AsyncClient,
+    session: AsyncSession,
+    status: SubmitStatus,
+) -> None:
+    """Approved (A/D) statuses show a disabled Submit button with no action."""
+    vdi_id = await make_vdi_row(session, status=status)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert '<button type="button" class="lifecycle-btn" disabled>Submit</button>' in body
+    assert "SEQUENCE COMPLETE" in body
+    # A terminal item exposes neither lifecycle modal trigger.
+    assert "data-modal-open=\"submit-modal\"" not in body
+    assert "data-modal-open=\"return-modal\"" not in body
+
+
+async def test_return_modal_offers_only_four_codes(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The return select offers A/B/C/D only, never lifecycle states."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.SUBMITTED)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert 'data-modal="return-modal"' in body
+    for code in ("a", "b", "c", "d"):
+        assert f'<option value="{code}">' in body
+    assert '<option value="not_started">' not in body
+    assert '<option value="submitted">' not in body
+
+
+async def test_notes_box_is_editable_with_save(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The live notes box is editable and carries the in-place save controls."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.NOT_STARTED)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert f'data-notes-url="/api/vdi/{vdi_id}"' in body
+    assert "data-notes-input" in body
+    assert "data-notes-save" in body
+    assert "readonly" not in body
