@@ -26,6 +26,13 @@ SUBMITTABLE_STATUSES = frozenset(
 # only while the VDI is out for review.
 RETURNABLE_STATUSES = frozenset({SubmitStatus.SUBMITTED})
 
+# An item is "open" until the buyer approves it. A and D are the approved
+# (terminal) outcomes; everything else still needs attention. The Home gallery
+# counts these per project.
+OPEN_STATUSES = frozenset(
+    status for status in SubmitStatus if status not in {SubmitStatus.A, SubmitStatus.D}
+)
+
 
 async def create_vdi(session: AsyncSession, data: VdiCreate) -> VendorDataItem:
     """Create a new vendor data item and flush it to the session.

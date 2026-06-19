@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Onyx{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="wordmark" href="/">
+        <span class="wordmark-gem" aria-hidden="true"></span>
+        <span class="wordmark-text">ONYX</span>
+      </a>
+      <span class="topbar-divider" aria-hidden="true"></span>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        {% block breadcrumb %}<span class="crumb crumb-current">PROJECTS</span>{% endblock %}
+      </nav>
+      <div class="topbar-right">
+        {% block vdi_tag %}{% endblock %}
+        <button type="button" class="btn-ghost theme-toggle" data-theme-toggle>
+          {% if theme == "light" %}&#9790; Dark{% else %}&#9728; Light{% endif %}
+        </button>
+      </div>
+    </div>
+  </header>
+
+  {% block banner %}{% endblock %}
+
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

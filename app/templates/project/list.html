@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Projects · Onyx{% endblock %}
+
+{% block content %}
+<section class="page-header gallery-header">
+  <div>
+    <p class="eyebrow">WORKSPACE</p>
+    <h1 class="h1-home">Projects</h1>
+    <p class="header-count">{{ cards | length }} PROJECT{{ '' if cards | length == 1 else 'S' }}</p>
+  </div>
+  <div class="header-actions">
+    <a class="btn-primary" href="#">+ New Project</a>
+  </div>
+</section>
+
+<div class="header-rule"></div>
+
+{% if cards %}
+<div class="card-grid">
+  {% for card in cards %}
+  <a class="project-card" href="/projects/{{ card.project.id }}">
+    <div class="card-top">
+      <span class="card-number">{{ card.project.project_number }}</span>
+      {% if card.open_count %}
+        <span class="card-cue cue-open">{{ card.open_count }} OPEN</span>
+      {% else %}
+        <span class="card-cue cue-clear">ALL CLEAR</span>
+      {% endif %}
+    </div>
+    <h2 class="card-name">{{ card.project.name }}</h2>
+    <div class="card-footer">{{ card.total_count }} ITEM{{ '' if card.total_count == 1 else 'S' }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">No projects yet.</p>
+  <p class="empty-sub">Create your first project to start tracking vendor data items.</p>
+  <a class="btn-primary" href="#">+ New Project</a>
+</div>
+{% endif %}
+{% endblock %}
