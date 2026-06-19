@@ -302,14 +302,15 @@ function switch_preview_tab(tab) {
     panel.hidden = panel.dataset.previewPanel !== target;
   }
 
-  // The header filename and OPEN link follow the active tab.
+  // The header filename and DOWNLOAD link follow the active tab. The link
+  // carries ?download=1 so the active file is saved rather than served inline.
   const filename = preview.querySelector("[data-preview-filename]");
   if (filename) {
     filename.textContent = tab.dataset.filename;
   }
   const open_link = preview.querySelector("[data-preview-open]");
   if (open_link) {
-    open_link.href = tab.dataset.fileUrl;
+    open_link.href = `${tab.dataset.fileUrl}?download=1`;
   }
 }
 

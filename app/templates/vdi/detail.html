@@ -59,7 +59,7 @@
       <span class="preview-ext">{{ file.original_name | file_extension }}</span>
       <span class="preview-download-name">{{ file.original_name }}</span>
       <span class="preview-download-note">CANNOT PREVIEW INLINE</span>
-      <a class="btn-primary" href="/api/files/{{ file.id }}" target="_blank" rel="noopener">Download file</a>
+      <a class="btn-primary" href="/api/files/{{ file.id }}?download=1">Download file</a>
     </div>
   {% endif %}
 {% endmacro %}
@@ -197,7 +197,7 @@
           </div>
           {% endif %}
           <span class="preview-filename" data-preview-filename>{{ active_file.original_name }}</span>
-          <a class="preview-open" data-preview-open href="/api/files/{{ active_file.id }}" target="_blank" rel="noopener">OPEN ↗</a>
+          <a class="preview-open" data-preview-open href="/api/files/{{ active_file.id }}?download=1">DOWNLOAD</a>
         </div>
 
         <div class="preview-pane" data-preview-panel="submitted" {% if active != "submitted" %}hidden{% endif %}>

@@ -12,6 +12,31 @@ PREVIEW_PDF = "pdf"
 PREVIEW_IMAGE = "image"
 PREVIEW_DOWNLOAD = "download"
 
+# Content types we are willing to serve at a navigable URL with
+# Content-Disposition: inline. Deliberately narrower than preview_kind — it
+# excludes image/svg+xml, whose script executes on our origin if the browser
+# navigates straight to it as the top document (stored XSS). See ADR 0006.
+INLINE_SAFE_CONTENT_TYPES = frozenset(
+    {
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp",
+        "image/bmp",
+    }
+)
+
+
+def is_inline_safe(content_type: str) -> bool:
+    """Return whether these bytes are safe to serve inline at a navigable URL.
+
+    Narrower than preview_kind on purpose: it answers "can the browser be handed
+    these bytes inline" rather than "how does the pane embed them", and so
+    excludes image/svg+xml even though an <img>-referenced SVG is previewable.
+    """
+    return (content_type or "").lower() in INLINE_SAFE_CONTENT_TYPES
+
 
 def preview_kind(content_type: str) -> str:
     """Return the preview branch (pdf/image/download) for a content type."""
