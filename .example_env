@@ -1,0 +1,10 @@
+DATABASE_URL=urlfordatabase
+FILE_STORAGE_ROOT=/file/storage
+CLIENT_SECRET=Client secret VALUE (from the entra app registration; expires, rotate before it does)
+TENANT_ID=Directory (tenant) ID from the registration (in entra)
+CLIENT_ID=Application (client) ID (from entra)
+SESSION_SECRET=openssl rand -hex 32
+ONYX_ADMIN_EMAILS=youremail@outlook.com
+COOKIE_SECURE=make true in prod, false in dev
+SQL_ECHO=make false in prod, true in dev
+APP_BASE_URL=https://<domain>

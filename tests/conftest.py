@@ -9,8 +9,10 @@ from sqlalchemy.pool import StaticPool
 
 from pathlib import Path
 
+from app.auth import service as auth_service
 from app.database import Base, get_session
 from app.file.dependencies import get_storage_root
+from app.models.user import User
 
 # Importing the models package registers every model on Base.metadata so that
 # create_all builds the full schema and the mapper configures.
@@ -40,18 +42,26 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
     await engine.dispose()
 
 
-@pytest_asyncio.fixture
-async def client(
+async def seed_user(
     session: AsyncSession,
-    tmp_path: Path,
-) -> AsyncGenerator[AsyncClient, None]:
-    """Drive the real app over its HTTP seam against the test session.
+    email: str = "tester@onyx.test",
+    is_admin: bool = False,
+) -> User:
+    """Persist an active, already-bound User for tests that need a real account."""
+    user = User(
+        entra_oid=f"oid-{email}",
+        email=email,
+        display_name="Test User",
+        is_admin=is_admin,
+        is_active=True,
+    )
+    session.add(user)
+    await session.flush()
+    return user
 
-    The app's get_session dependency is overridden to hand every request the
-    same aiosqlite session the test uses, so route commits and direct reads
-    share one in-memory database. get_storage_root is redirected to pytest's
-    per-test tmp_path so uploads never touch the real storage root.
-    """
+
+def _build_client(session: AsyncSession, tmp_path: Path) -> AsyncClient:
+    """Build an AsyncClient over the app, sharing the test session and tmp uploads."""
 
     async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
@@ -59,6 +69,38 @@ async def client(
     app.dependency_overrides[get_session] = override_get_session
     app.dependency_overrides[get_storage_root] = lambda: tmp_path
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+    return AsyncClient(transport=transport, base_url="http://test")
+
+
+@pytest_asyncio.fixture
+async def client(
+    session: AsyncSession,
+    tmp_path: Path,
+) -> AsyncGenerator[AsyncClient, None]:
+    """Drive the real app, authenticated by default, against the test session.
+
+    A User and a minted Session are seeded into the shared in-memory database and
+    the session cookie is sent on every request, so the global auth gate (which
+    runs at the ASGI layer) admits the whole existing suite without per-test
+    edits. get_storage_root is redirected to pytest's per-test tmp_path.
+    """
+    user = await seed_user(session)
+    raw_token, _ = await auth_service.mint_session(session, user)
+
+    test_client = _build_client(session, tmp_path)
+    test_client.cookies.set(auth_service.SESSION_COOKIE_NAME, raw_token)
+    async with test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def anonymous_client(
+    session: AsyncSession,
+    tmp_path: Path,
+) -> AsyncGenerator[AsyncClient, None]:
+    """Drive the app with no session cookie, to assert the unauthenticated gate."""
+    test_client = _build_client(session, tmp_path)
+    async with test_client:
         yield test_client
     app.dependency_overrides.clear()

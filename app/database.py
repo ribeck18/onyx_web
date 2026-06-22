@@ -3,9 +3,9 @@ from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
-from config import database_url
+from config import database_url, sql_echo
 
-engine = create_async_engine(database_url, echo=True)
+engine = create_async_engine(database_url, echo=sql_echo)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

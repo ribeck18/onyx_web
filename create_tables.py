@@ -10,6 +10,10 @@ import app.models  # noqa: F401
 async def create_tables() -> None:
     """Create every table on the configured database for local testing."""
     async with engine.begin() as connection:
+        # TODO(alembic): adopt Alembic for migrations once a schema change must
+        # ALTER a table that already holds production data. create_all() only
+        # creates missing tables, so it covers purely-additive changes (e.g. the
+        # auth tables) but cannot evolve existing ones without data loss.
         await connection.run_sync(Base.metadata.create_all)
     await engine.dispose()
 

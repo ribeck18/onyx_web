@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Sign in · Onyx{% endblock %}
+
+{% block breadcrumb %}<span class="crumb crumb-current">SIGN IN</span>{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <div class="auth-card">
+    <p class="eyebrow">ONYX ACCESS</p>
+    <h1 class="auth-title">Sign in to continue</h1>
+    <p class="auth-sub">
+      Onyx uses your company Microsoft account. You'll be returned here once
+      you're signed in.
+    </p>
+    <a class="btn-primary auth-action" href="/auth/login?next={{ next | urlencode }}">
+      Sign in with Microsoft
+    </a>
+    <p class="auth-foot">
+      No account? Access is provisioned by an admin — there is no self-signup.
+    </p>
+  </div>
+</section>
+{% endblock %}
