@@ -23,6 +23,66 @@ async def test_save_then_download_round_trip(client, session, tmp_path):
     assert "rev0.pdf" in response.headers["content-disposition"]
 
 
+async def test_inline_safe_type_serves_inline_with_filename(client, session, tmp_path):
+    """A PDF with no download param is served inline, keeping its original name."""
+    stored_file = await service.save_upload(session, make_upload(), tmp_path)
+    await session.commit()
+
+    response = await client.get(f"/api/files/{stored_file.id}")
+
+    disposition = response.headers["content-disposition"]
+    assert disposition.startswith("inline")
+    assert "rev0.pdf" in disposition
+
+
+async def test_download_param_forces_attachment(client, session, tmp_path):
+    """The same inline-safe file is served as an attachment with ?download=1."""
+    stored_file = await service.save_upload(session, make_upload(), tmp_path)
+    await session.commit()
+
+    response = await client.get(f"/api/files/{stored_file.id}?download=1")
+
+    assert response.headers["content-disposition"].startswith("attachment")
+
+
+async def test_svg_is_forced_to_attachment(client, session, tmp_path):
+    """An SVG is never served inline — it could run script on our origin."""
+    stored_file = await service.save_upload(
+        session,
+        make_upload(filename="drawing.svg", content_type="image/svg+xml"),
+        tmp_path,
+    )
+    await session.commit()
+
+    response = await client.get(f"/api/files/{stored_file.id}")
+
+    assert response.headers["content-disposition"].startswith("attachment")
+
+
+async def test_non_previewable_type_is_attachment(client, session, tmp_path):
+    """A type outside the inline allowlist (e.g. CAD) is served as a download."""
+    stored_file = await service.save_upload(
+        session,
+        make_upload(filename="part.dwg", content_type="application/octet-stream"),
+        tmp_path,
+    )
+    await session.commit()
+
+    response = await client.get(f"/api/files/{stored_file.id}")
+
+    assert response.headers["content-disposition"].startswith("attachment")
+
+
+async def test_file_response_sends_nosniff(client, session, tmp_path):
+    """The file response carries X-Content-Type-Options: nosniff."""
+    stored_file = await service.save_upload(session, make_upload(), tmp_path)
+    await session.commit()
+
+    response = await client.get(f"/api/files/{stored_file.id}")
+
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
 async def test_save_upload_writes_bytes_under_storage_root(session, tmp_path):
     """The bytes land under the storage root with the original extension preserved."""
     stored_file = await service.save_upload(

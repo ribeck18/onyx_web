@@ -23,5 +23,9 @@ The buyer's verdict on a submitted Revision: A or D mean approved; B or C mean r
 ### Approval Type
 Whether a VDI requires the buyer's approval (Mandatory Approval) or is provided for reference only (Information Only).
 
+### Open Item
+A VDI whose lifecycle is not yet finished — its status is anything other than an approved terminal code (A or D). The project gallery surfaces the count of Open Items per project ("N OPEN", or "ALL CLEAR" when none remain).
+_Avoid_: outstanding, pending, unresolved.
+
 ### Submit Code
 A short code on a VDI indicating when its submittal is due relative to the project timeline (e.g. PS — Prior to Shipment).

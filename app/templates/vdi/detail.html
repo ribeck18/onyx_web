@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% from "macros/badge.html" import status_badge %}
+{% from "macros/modal.html" import form_modal %}
+
+{% set is_historical = historical | default(false) %}
+
+{# Historical view reflects the chosen revision; live view the latest + VDI status. #}
+{% set view_revision = revision if is_historical else latest_revision %}
+{% set view_status = revision.status if is_historical else vdi.status %}
+{% set viewed_revision_id = view_revision.id if view_revision else none %}
+{% set preview_title = "REVISION FILE" if is_historical else "CURRENT FILE" %}
+
+{% set returned_codes = ["a", "b", "c", "d"] %}
+{% set is_returned = view_status.value in returned_codes %}
+
+{% set status_value = vdi.status.value %}
+{% set can_submit = status_value in ["not_started", "b", "c"] %}
+{% set can_return = status_value == "submitted" %}
+{% set is_revise = status_value in ["b", "c"] %}
+
+{% block title %}{{ vdi.name }} · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}">{{ project.project_number }}</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">{{ vdi.name | upper }}</span>
+{% endblock %}
+
+{% block vdi_tag %}<span class="vdi-tag">VDI-{{ vdi.id }}</span>{% endblock %}
+
+{% block banner %}
+{% if is_historical %}
+<div class="hist-banner">
+  <div class="hist-banner-inner">
+    <span class="hist-banner-glyph" aria-hidden="true">!</span>
+    <span class="hist-banner-text">VIEWING PAST REVISION — NOT THE CURRENT STATE OF THIS VDI.</span>
+    <a class="hist-banner-link" href="/vdi/{{ vdi.id }}">RETURN TO CURRENT &#8617;</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{#
+  Render the content-type-driven preview body for one file: PDF iframe, inline
+  image, or a download fallback.
+#}
+{% macro file_pane(file) %}
+  {% set kind = file.content_type | preview_kind %}
+  {% if kind == "pdf" %}
+    <iframe class="preview-pdf" src="/api/files/{{ file.id }}" title="{{ file.original_name }}"></iframe>
+  {% elif kind == "image" %}
+    <div class="preview-image-box">
+      <img class="preview-image" src="/api/files/{{ file.id }}" alt="{{ file.original_name }}">
+    </div>
+  {% else %}
+    <div class="preview-download">
+      <span class="preview-ext">{{ file.original_name | file_extension }}</span>
+      <span class="preview-download-name">{{ file.original_name }}</span>
+      <span class="preview-download-note">CANNOT PREVIEW INLINE</span>
+      <a class="btn-primary" href="/api/files/{{ file.id }}?download=1">Download file</a>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% block content %}
+{% set rev = view_revision %}
+
+<section class="vdi-hero">
+  <div class="vdi-hero-main">
+    <p class="eyebrow">VENDOR DATA ITEM · {{ vdi.item_number }}</p>
+    <h1 class="h1-vdi">{{ vdi.name }}</h1>
+    <p class="vdi-meta">
+      SUB {{ vdi.submittal_number or "—" }}
+      · CODE <span class="vdi-meta-code">{{ vdi.submit_code | submit_code_short }}</span>
+      · {{ vdi.approval_type | approval_type_label }}
+    </p>
+  </div>
+  <div class="vdi-hero-status">
+    <p class="eyebrow">STATUS</p>
+    <div class="hero-status fam-{{ view_status | status_family }}">
+      <span class="hero-dot" aria-hidden="true"></span>
+      <span class="hero-word">{{ view_status | status_hero_word }}</span>
+      {% if is_returned %}<span class="hero-code">/{{ view_status.value | upper }}</span>{% endif %}
+    </div>
+  </div>
+</section>
+
+<div class="gradient-rule"></div>
+
+<section class="vdi-spec">
+  <p class="section-label">SPECIFICATION</p>
+  <div class="spec-cells">
+    <div class="spec-cell">
+      <span class="spec-label">APPROVAL TYPE</span>
+      <span class="spec-value">{{ vdi.approval_type | approval_type_label }}</span>
+    </div>
+    <div class="spec-cell">
+      <span class="spec-label">SUBMIT CODE</span>
+      <span class="spec-value">{{ vdi.submit_code | submit_code_label }}</span>
+    </div>
+    <div class="spec-cell">
+      <span class="spec-label">SPEC / DWG REF</span>
+      <span class="spec-value">{{ vdi.spec_drawing_reference or "—" }}</span>
+    </div>
+    <div class="spec-cell">
+      <span class="spec-label">SUBMITTAL</span>
+      <span class="spec-value">{{ vdi.submittal_number or "—" }}</span>
+    </div>
+  </div>
+  {% if vdi.description %}
+  <p class="spec-description">{{ vdi.description }}</p>
+  {% endif %}
+</section>
+
+<div class="plain-rule"></div>
+
+<section class="lifecycle-row">
+  <p class="section-label lifecycle-label">LIFECYCLE</p>
+  {% if is_historical %}
+  <button type="button" class="lifecycle-btn" disabled>Submit</button>
+  <p class="lifecycle-note">ACTIONS AVAILABLE ONLY ON CURRENT VDI.</p>
+  {% elif status_value == "not_started" %}
+  <button type="button"
+          class="lifecycle-btn lifecycle-accent"
+          data-modal-open="submit-modal"
+          data-title="Submit Revision"
+          data-intro="Submit the first revision of {{ vdi.name }}."
+          data-submit-label="Submit"
+          data-method="POST"
+          data-url="/api/vdi/{{ vdi.id }}/submit">Submit</button>
+  <p class="lifecycle-note">UPLOAD THE FIRST REVISION AND SEND TO BUYER.</p>
+  {% elif is_revise %}
+  <button type="button"
+          class="lifecycle-btn lifecycle-bad"
+          data-modal-open="submit-modal"
+          data-title="Revise Submittal"
+          data-intro="Upload a corrected revision for {{ vdi.name }}."
+          data-submit-label="Resubmit"
+          data-method="POST"
+          data-url="/api/vdi/{{ vdi.id }}/submit">Revise</button>
+  <p class="lifecycle-note">UPLOAD A CORRECTED REVISION AND RESUBMIT.</p>
+  {% elif can_return %}
+  <button type="button"
+          class="lifecycle-btn lifecycle-info"
+          data-modal-open="return-modal"
+          data-title="Record Buyer Return"
+          data-intro="Record the buyer's verdict for {{ vdi.name }}."
+          data-submit-label="Record Return"
+          data-method="POST"
+          data-url="/api/vdi/{{ vdi.id }}/return">Return</button>
+  <p class="lifecycle-note">RECORD THE BUYER'S VERDICT FOR THIS REVISION.</p>
+  {% else %}
+  <button type="button" class="lifecycle-btn" disabled>Submit</button>
+  <p class="lifecycle-note">SEQUENCE COMPLETE · NO ACTION REQUIRED.</p>
+  {% endif %}
+</section>
+
+<div class="plain-rule"></div>
+
+<section class="vdi-columns">
+  <div class="vdi-col-left">
+    {% if rev and rev.comments %}
+    <div class="buyer-comments">
+      <p class="buyer-comments-label">BUYER COMMENTS</p>
+      <p class="buyer-comments-text">{{ rev.comments }}</p>
+    </div>
+    {% endif %}
+
+    <div class="preview">
+      {% if rev is none %}
+      <p class="preview-title">{{ preview_title }}</p>
+      <div class="preview-empty">
+        <p class="preview-empty-title">This VDI has not been started.</p>
+        <p class="preview-empty-note">SUBMIT THE FIRST REVISION TO BEGIN THE LIFECYCLE</p>
+      </div>
+      {% else %}
+        {% set has_return = rev.return_file is not none %}
+        {% set show_returned = is_returned and has_return %}
+        {% set active = "returned" if show_returned else "submitted" %}
+        {% set active_file = rev.return_file if show_returned else rev.submit_file %}
+        <div class="preview-head">
+          <span class="preview-title">{{ preview_title }}</span>
+          {% if show_returned %}
+          <div class="preview-tabs">
+            <button type="button"
+                    class="preview-tab"
+                    data-preview-tab="submitted"
+                    data-filename="{{ rev.submit_file.original_name }}"
+                    data-file-url="/api/files/{{ rev.submit_file.id }}">SUBMITTED</button>
+            <button type="button"
+                    class="preview-tab is-active"
+                    data-preview-tab="returned"
+                    data-filename="{{ rev.return_file.original_name }}"
+                    data-file-url="/api/files/{{ rev.return_file.id }}">RETURNED</button>
+          </div>
+          {% endif %}
+          <span class="preview-filename" data-preview-filename>{{ active_file.original_name }}</span>
+          <a class="preview-open" data-preview-open href="/api/files/{{ active_file.id }}?download=1">DOWNLOAD</a>
+        </div>
+
+        <div class="preview-pane" data-preview-panel="submitted" {% if active != "submitted" %}hidden{% endif %}>
+          {{ file_pane(rev.submit_file) }}
+        </div>
+        {% if show_returned %}
+        <div class="preview-pane" data-preview-panel="returned" {% if active != "returned" %}hidden{% endif %}>
+          {{ file_pane(rev.return_file) }}
+        </div>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <div class="notes"{% if not is_historical %} data-notes data-notes-url="/api/vdi/{{ vdi.id }}"{% endif %}>
+      <div class="notes-head">
+        <p class="section-label">NOTES</p>
+        {% if is_historical %}<span class="notes-readonly">READ-ONLY</span>{% endif %}
+        {% if not is_historical %}<span class="notes-saved" data-notes-saved hidden>SAVED &#10003;</span>{% endif %}
+      </div>
+      <textarea class="notes-text"
+                rows="4"
+                data-notes-input
+                {% if is_historical %}disabled{% endif %}>{{ vdi.notes or "" }}</textarea>
+      {% if not is_historical %}
+      <button type="button" class="save-notes" data-notes-save disabled>Save notes</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="vdi-col-right">
+    <p class="section-label">REVISION LOG</p>
+    {% if revisions %}
+    <div class="timeline">
+      {% for rev in revisions %}
+      {# The true-latest entry always links to the live page; the viewed entry
+         (latest in live mode, the chosen revision in historical) is marked. #}
+      {% set is_latest = loop.last %}
+      {% set is_viewed = rev.id == viewed_revision_id %}
+      <a class="timeline-entry"
+         href="{% if is_latest %}/vdi/{{ vdi.id }}{% else %}/vdi/{{ vdi.id }}/revisions/{{ rev.id }}{% endif %}">
+        <span class="timeline-node fam-{{ rev.status | status_family }}{% if is_viewed %} is-current{% endif %}" aria-hidden="true"></span>
+        <div class="timeline-row">
+          <span class="timeline-rev">REV {{ rev.revision_number }}</span>
+          {% if is_viewed %}<span class="timeline-current-tag">CURRENT</span>{% endif %}
+          {{ status_badge(rev.status) }}
+        </div>
+        <p class="timeline-dates">
+          SUB {{ rev.submitted_at.strftime("%Y-%m-%d") }}
+          {% if rev.returned_at %}· RET {{ rev.returned_at.strftime("%Y-%m-%d") }}{% else %}· AWAITING RETURN{% endif %}
+        </p>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="timeline-empty">NO REVISIONS YET.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block modals %}
+{% if not is_historical %}
+{% call form_modal("submit-modal", "Submit Revision", "Submit", "A file is required.", "Submit the first revision.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Submittal File <span class="req">*</span></span>
+    <input type="file" name="file" class="field-file" required>
+  </label>
+  <p class="modal-helper">Uploads as a new revision and moves this item to <strong>Submitted</strong>.</p>
+{% endcall %}
+
+{% call form_modal("return-modal", "Record Buyer Return", "Record Return", "A return code and file are required.", "Record the buyer's verdict for this revision.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Return Code <span class="req">*</span></span>
+    <select name="return_code" class="field-input" required>
+      <option value="" disabled selected>Select…</option>
+      <option value="a">A — Approved</option>
+      <option value="b">B — Rejected, resubmit</option>
+      <option value="c">C — Rejected, resubmit</option>
+      <option value="d">D — Approved</option>
+    </select>
+  </label>
+  <label class="field">
+    <span class="field-label">Returned File <span class="req">*</span></span>
+    <input type="file" name="file" class="field-file" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Comments</span>
+    <textarea name="comments" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% from "macros/badge.html" import status_badge %}
+{% from "macros/modal.html" import form_modal %}
+
+{% block title %}{{ project.name }} · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">{{ project.project_number }}</span>
+{% endblock %}
+
+{% block content %}
+<section class="project-detail-header">
+  <div>
+    <p class="detail-number">{{ project.project_number }}</p>
+    <h1 class="h1-detail">{{ project.name }}</h1>
+    {% if project.description %}
+    <p class="detail-description">{{ project.description }}</p>
+    {% endif %}
+  </div>
+  <button type="button"
+          class="btn-ghost"
+          data-modal-open="project-modal"
+          data-mode="edit"
+          data-title="Edit Project"
+          data-submit-label="Save Changes"
+          data-method="PATCH"
+          data-url="/api/projects/{{ project.id }}"
+          data-prefill='{{ {"project_number": project.project_number, "name": project.name, "description": project.description} | tojson }}'>Edit</button>
+</section>
+
+<div class="gradient-rule"></div>
+
+<section class="section-header">
+  <p class="section-label">VENDOR DATA ITEMS</p>
+  <div class="header-actions">
+    {% if vdis %}
+    <button type="button" class="btn-ghost delete-toggle" data-delete-toggle="vdi-table">Delete</button>
+    {% endif %}
+    <button type="button"
+            class="btn-primary"
+            data-modal-open="vdi-modal"
+            data-mode="create"
+            data-title="New Vendor Data Item"
+            data-submit-label="Create VDI"
+            data-method="POST"
+            data-url="/api/vdi">+ New VDI</button>
+  </div>
+</section>
+
+{% if vdis %}
+<table class="vdi-table" id="vdi-table">
+  <thead>
+    <tr>
+      <th class="col-name">NAME</th>
+      <th class="col-item">ITEM</th>
+      <th class="col-submittal">SUBMITTAL</th>
+      <th class="col-code">CODE</th>
+      <th class="col-status">STATUS</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for vdi in vdis %}
+    <tr class="vdi-row"
+        data-vdi-row
+        data-vdi-id="{{ vdi.id }}"
+        data-vdi-name="{{ vdi.name }}"
+        data-href="/vdi/{{ vdi.id }}">
+      <td class="col-name">
+        <a class="vdi-row-link" href="/vdi/{{ vdi.id }}">{{ vdi.name }}</a>
+      </td>
+      <td class="col-item">{{ vdi.item_number }}</td>
+      <td class="col-submittal">
+        {% if vdi.submittal_number %}
+        <span class="cell-value">{{ vdi.submittal_number }}</span>
+        {% else %}
+        <span class="cell-dash">—</span>
+        {% endif %}
+      </td>
+      <td class="col-code">
+        <span class="code-tag" title="{{ vdi.submit_code | submit_code_label }}">{{ vdi.submit_code | submit_code_short }}</span>
+      </td>
+      <td class="col-status">{{ status_badge(vdi.status) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">No vendor data items yet.</p>
+  <p class="empty-sub">Add the first vendor data item to start tracking submittals.</p>
+  <button type="button"
+          class="btn-primary"
+          data-modal-open="vdi-modal"
+          data-mode="create"
+          data-title="New Vendor Data Item"
+          data-submit-label="Create VDI"
+          data-method="POST"
+          data-url="/api/vdi">+ New VDI</button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+{% call form_modal("project-modal", "Edit Project", "Save Changes", "Project number and name are required.") %}
+  <label class="field">
+    <span class="field-label">Project Number <span class="req">*</span></span>
+    <input type="text" name="project_number" class="field-input" placeholder="26-131" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Name <span class="req">*</span></span>
+    <input type="text" name="name" class="field-input" placeholder="Acme Plant Expansion" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea name="description" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+
+{% call form_modal("vdi-modal", "New Vendor Data Item", "Create VDI", "Item number, name, approval type, and submit code are required.") %}
+  <input type="hidden" name="project_id" value="{{ project.id }}">
+
+  <p class="field-group-label">IDENTITY</p>
+  <label class="field">
+    <span class="field-label">Item Number <span class="req">*</span></span>
+    <input type="number" name="item_number" class="field-input" placeholder="12" autocomplete="off" required>
+    <span class="field-error" data-field-error hidden></span>
+  </label>
+  <label class="field">
+    <span class="field-label">Name <span class="req">*</span></span>
+    <input type="text" name="name" class="field-input" placeholder="Concrete Mix Design" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Submittal Number</span>
+    <input type="text" name="submittal_number" class="field-input" placeholder="26-131-001" autocomplete="off">
+  </label>
+
+  <p class="field-group-label">CLASSIFICATION</p>
+  <label class="field">
+    <span class="field-label">Approval Type <span class="req">*</span></span>
+    <select name="approval_type" class="field-input" required>
+      <option value="" disabled selected>Select…</option>
+      {% for approval_type, label in approval_type_options.items() %}
+      <option value="{{ approval_type.value }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="field">
+    <span class="field-label">Submit Code <span class="req">*</span></span>
+    <select name="submit_code" class="field-input" required>
+      <option value="" disabled selected>Select…</option>
+      {% for submit_code, label in submit_code_options.items() %}
+      <option value="{{ submit_code.value }}">{{ submit_code.value | upper }} — {{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="field">
+    <span class="field-label">Spec / Drawing Reference</span>
+    <input type="text" name="spec_drawing_reference" class="field-input" placeholder="Spec §3.4 / Dwg S-201" autocomplete="off">
+  </label>
+
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea name="description" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+
+  <label class="field" data-create-only>
+    <span class="field-label">Notes</span>
+    <textarea name="notes" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+{% endblock %}

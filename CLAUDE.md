@@ -53,6 +53,15 @@
 - Every route file creates a single APIRouter
 - Routes that deal with the database call service functions, commit, and return the schema
 
+## Frontend (server-rendered)
+
+- Server-rendered Jinja2 + one `static/style.css` + one `static/app.js` (vanilla JS). No framework, no build step, no HTMX (ADR 0005).
+- HTML page routes live in a per-domain `web_pages.py` (a single APIRouter, mounted at root with **no** `/api` prefix). They render templates by calling services **directly** — never by self-calling the JSON `/api`.
+- All page rendering goes through the one `Jinja2Templates` in `app/web/templating.py`; its `render()` helper injects the current theme from the `theme` cookie (default dark) so there is no flash. Static is mounted once in `app.py`.
+- Never show a raw enum value to a user. Human labels, badge strings, and the status color family (`ns`/`info`/`ok`/`bad`) come from `app/web/labels.py`, exposed to templates as Jinja globals/filters. `labels.py` is the source of truth for enum meanings (keep the enum source comments minimal to avoid drift).
+- Mutations from the UI call the JSON `/api` via a small `fetch` helper: 2xx → `location.reload()`, non-2xx → inline modal error. The only in-place mutation is the notes `PATCH` (no reload). The duplicate-item-number 409 renders inline under the item_number field.
+- Both dark and light themes are first-class and painted entirely from CSS custom properties; verify every screen in both.
+
 ## Enums
 
 - Inherit from enum.Enum (not StrEnum)
@@ -71,42 +80,56 @@
 ## Folder Structure
 ```
 app/
-├── main.py
+├── app.py                     # FastAPI instance: includes /api routers + page routers, mounts /static
 ├── database.py
+├── web/                       # shared frontend plumbing (cross-domain, not a data domain)
+│   ├── templating.py          # the single Jinja2Templates instance + render() that injects the theme
+│   └── labels.py              # enum→label + status badge/family/hero-word presentation maps
 ├── models/
 │   ├── project.py
 │   ├── vdi.py
-│   └── revision.py
+│   ├── revision.py
+│   └── file.py
 ├── project/
-│   ├── router.py
+│   ├── router.py              # JSON API under /api
 │   ├── service.py
-│   └── schema.py
+│   ├── schema.py
+│   └── web_pages.py           # HTML page routes: GET / (gallery), GET /projects/{id}
 ├── vdi/
 │   ├── router.py
 │   ├── service.py
 │   ├── schema.py
+│   ├── approval_type.py       # enum
+│   ├── submit_code.py         # enum
+│   ├── submit_status.py       # enum
+│   ├── web_pages.py           # HTML page route: GET /vdi/{id}
 │   └── revision/
 │       ├── router.py
 │       ├── service.py
-│       └── schema.py
+│       ├── schema.py
+│       └── web_pages.py       # HTML route: GET /vdi/{id}/revisions/{rid} (renders vdi/detail.html)
+├── file/
+│   ├── router.py
+│   ├── service.py
+│   ├── schema.py
+│   └── dependencies.py
 ├── templates/
-│   ├── base.html
+│   ├── base.html              # global shell: top bar, theme, single modal mount
+│   ├── macros/                # shared, cross-domain partials (status badge, modal shell, buttons)
 │   ├── project/
-│   │   ├── list.html
-│   │   ├── detail.html
-│   │   └── new.html
-│   ├── vdi/
-│   │   ├── detail.html
-│   │   └── new.html
-│   └── revision/
-│       └── detail.html
+│   │   ├── list.html          # Home — project gallery
+│   │   └── detail.html
+│   └── vdi/
+│       └── detail.html        # also serves the historical view (rendered with historical=True)
 ├── static/
-│   └── style.css
+│   ├── style.css              # both theme token sets + every component class
+│   └── app.js                 # modal/delete-mode/theme toggle, file-preview tabs, notes save, fetch helper
 uploads/
 claude_brain/
-│   └── mvp_plan.md
 ```
 - Store other documents such as the readme or the .env in the root.
+- Page bodies live per domain (`templates/<domain>/`); the shared shell + macros live at the `templates/` root.
+- There are no `new.html` pages and no `revision/detail.html`: create/edit use modals, and the historical view reuses `vdi/detail.html`.
 
 ## Agent skills
 

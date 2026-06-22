@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.file import service
 from app.file.dependencies import get_storage_root
+from app.web.file_preview import is_inline_safe
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -16,13 +17,17 @@ router = APIRouter(prefix="/files", tags=["files"])
 @router.get("/{file_id}")
 async def download_file(
     file_id: int,
+    download: bool = False,
     session: AsyncSession = Depends(get_session),
     storage_root: Path = Depends(get_storage_root),
 ) -> FileResponse:
     """Return a stored file's original bytes with its original name and type.
 
-    404 when either the row or the on-disk bytes are missing, so a stale row
-    pointing at a deleted file is treated the same as an unknown id.
+    Serves inline so the detail pane can preview the file in place; the bytes
+    are sent as an attachment only when ``download=1`` is requested or the
+    content type is not inline-safe (e.g. SVG, CAD). 404 when either the row or
+    the on-disk bytes are missing, so a stale row pointing at a deleted file is
+    treated the same as an unknown id.
     """
     stored_file = await service.get_file(session, file_id)
     if stored_file is None:
@@ -36,8 +41,12 @@ async def download_file(
             status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
         )
 
+    as_attachment = download or not is_inline_safe(stored_file.content_type)
+    disposition = "attachment" if as_attachment else "inline"
     return FileResponse(
         path=disk_path,
         filename=stored_file.original_name,
         media_type=stored_file.content_type,
+        content_disposition_type=disposition,
+        headers={"X-Content-Type-Options": "nosniff"},
     )
