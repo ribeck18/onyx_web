@@ -237,6 +237,12 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer;
 }
 .btn-primary:hover { background: var(--btn-hover); border-color: var(--btn-hover); }
+.btn-primary:disabled,
+.btn-ghost:disabled,
+.modal-close:disabled {
+  opacity: .55;
+  cursor: default;
+}
 
 .btn-ghost {
   display: inline-flex;
@@ -489,6 +495,40 @@ a { color: inherit; text-decoration: none; }
   font-size: 13px;
 }
 .modal-error[hidden] { display: none; }
+
+/* Pending (in-flight submit) state. The status block announces progress via
+   aria-live; the buttons lock so the request cannot be re-fired or dismissed. */
+.modal-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 24px 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.modal-status[hidden] { display: none; }
+
+/* Indeterminate upload bar: a sliver of accent slides back and forth because the
+   fetch sender gives us no real percentage. Multipart submits reveal it. */
+.modal-progress {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--modal-line);
+  overflow: hidden;
+}
+.modal-progress[hidden] { display: none; }
+.modal-progress-bar {
+  width: 40%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: onyxIndeterminate 1.1s ease-in-out infinite;
+}
+@keyframes onyxIndeterminate {
+  0% { margin-left: -40%; }
+  100% { margin-left: 100%; }
+}
 
 .modal-footer {
   display: flex;

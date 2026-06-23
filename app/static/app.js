@@ -101,6 +101,13 @@ function open_modal(overlay) {
 }
 
 function close_modal(overlay) {
+  // While a submit is in flight the modal is locked: every dismissal route
+  // (Cancel/close buttons, Escape, backdrop click) funnels through here, so one
+  // guard covers them all.
+  const pending_form = overlay.querySelector("[data-modal-form]");
+  if (pending_form && pending_form.dataset.pending === "true") {
+    return;
+  }
   overlay.hidden = true;
   if (overlay.dataset.tokenCreated === "true") {
     location.reload();
@@ -181,6 +188,61 @@ function show_modal_error(form, message) {
   }
 }
 
+// Lock or unlock the modal around an in-flight submit. The submit button is
+// disabled and relabeled (its idle label is stashed for restore), the close
+// controls are disabled, and the aria-live status line is shown. Form fields are
+// left enabled on purpose — disabling them would drop them from FormData and the
+// json_payload selector, silently breaking the request.
+function set_modal_pending(form, is_pending) {
+  const submit = form.querySelector("[data-modal-submit]");
+  const status = form.querySelector("[data-modal-status]");
+  const status_text = form.querySelector("[data-modal-status-text]");
+  const progress = form.querySelector("[data-modal-progress]");
+  const closers = form.querySelectorAll("[data-modal-close]");
+  // Multipart file uploads show an indeterminate bar and an upload-specific
+  // label; everything else just shows the status line and "Saving…".
+  const is_upload = form.dataset.encoding === "multipart";
+  const busy_label = is_upload ? "Uploading…" : "Saving…";
+  if (is_pending) {
+    form.dataset.pending = "true";
+    if (submit) {
+      submit.dataset.idleLabel = submit.textContent;
+      submit.textContent = busy_label;
+      submit.disabled = true;
+    }
+    for (const closer of closers) {
+      closer.disabled = true;
+    }
+    if (status_text) {
+      status_text.textContent = busy_label;
+    }
+    if (progress) {
+      progress.hidden = !is_upload;
+    }
+    if (status) {
+      status.hidden = false;
+    }
+    return;
+  }
+  delete form.dataset.pending;
+  if (submit) {
+    if (submit.dataset.idleLabel !== undefined) {
+      submit.textContent = submit.dataset.idleLabel;
+      delete submit.dataset.idleLabel;
+    }
+    submit.disabled = false;
+  }
+  for (const closer of closers) {
+    closer.disabled = false;
+  }
+  if (progress) {
+    progress.hidden = true;
+  }
+  if (status) {
+    status.hidden = true;
+  }
+}
+
 function missing_required(form) {
   return Array.from(form.querySelectorAll("[required]:not([disabled])")).some(
     (field) => field.value.trim() === "",
@@ -200,6 +262,10 @@ function show_field_error(form, message) {
 }
 
 async function submit_modal_form(form) {
+  // Ignore re-entry (double-clicks, repeated Enter) while a submit is in flight.
+  if (form.dataset.pending === "true") {
+    return;
+  }
   if (missing_required(form)) {
     show_modal_error(
       form,
@@ -213,6 +279,7 @@ async function submit_modal_form(form) {
     await submit_token_form(form);
     return;
   }
+  set_modal_pending(form, true);
   const response =
     form.dataset.encoding === "multipart"
       ? await send_form(form.dataset.method, form.dataset.url, form)
@@ -221,6 +288,7 @@ async function submit_modal_form(form) {
     location.reload();
     return;
   }
+  set_modal_pending(form, false);
   const message = await error_message_from(response);
   // A duplicate item_number is a 409 the user fixes in one field — render it
   // there; anything else is a modal-wide error.
@@ -231,11 +299,17 @@ async function submit_modal_form(form) {
 }
 
 async function submit_token_form(form) {
+  set_modal_pending(form, true);
   const response = await send_json(form.dataset.method, form.dataset.url, json_payload(form));
   if (!response.ok) {
+    set_modal_pending(form, false);
     show_modal_error(form, await error_message_from(response));
     return;
   }
+  // The token modal does not reload on success, so clear pending here — before the
+  // secret is revealed — to re-enable the footer close button, expose its "Done"
+  // relabel, and release the modal-close guard so the user can read and close it.
+  set_modal_pending(form, false);
   const body = await response.json();
   const overlay = form.closest("[data-modal]");
   const token_fields = form.querySelector("[data-token-fields]");

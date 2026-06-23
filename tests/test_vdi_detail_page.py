@@ -361,6 +361,38 @@ async def test_return_modal_offers_only_four_codes(
     assert '<option value="submitted">' not in body
 
 
+async def test_modal_shell_ships_hidden_pending_status(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The shared modal shell carries a hidden aria-live status line that the
+    pending state reveals during an in-flight submit."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.NOT_STARTED)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert (
+        '<div class="modal-status" data-modal-status aria-live="polite" hidden>'
+        in body
+    )
+
+
+async def test_modal_shell_ships_hidden_progress_bar(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The shared modal shell carries a hidden indeterminate progress bar that the
+    pending state reveals during a multipart upload."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.NOT_STARTED)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert '<div class="modal-progress" data-modal-progress hidden>' in body
+    assert '<div class="modal-progress-bar"></div>' in body
+
+
 async def test_notes_box_is_editable_with_save(
     client: AsyncClient, session: AsyncSession
 ) -> None:
