@@ -197,19 +197,27 @@ function set_modal_pending(form, is_pending) {
   const submit = form.querySelector("[data-modal-submit]");
   const status = form.querySelector("[data-modal-status]");
   const status_text = form.querySelector("[data-modal-status-text]");
+  const progress = form.querySelector("[data-modal-progress]");
   const closers = form.querySelectorAll("[data-modal-close]");
+  // Multipart file uploads show an indeterminate bar and an upload-specific
+  // label; everything else just shows the status line and "Saving…".
+  const is_upload = form.dataset.encoding === "multipart";
+  const busy_label = is_upload ? "Uploading…" : "Saving…";
   if (is_pending) {
     form.dataset.pending = "true";
     if (submit) {
       submit.dataset.idleLabel = submit.textContent;
-      submit.textContent = "Saving…";
+      submit.textContent = busy_label;
       submit.disabled = true;
     }
     for (const closer of closers) {
       closer.disabled = true;
     }
     if (status_text) {
-      status_text.textContent = "Saving…";
+      status_text.textContent = busy_label;
+    }
+    if (progress) {
+      progress.hidden = !is_upload;
     }
     if (status) {
       status.hidden = false;
@@ -226,6 +234,9 @@ function set_modal_pending(form, is_pending) {
   }
   for (const closer of closers) {
     closer.disabled = false;
+  }
+  if (progress) {
+    progress.hidden = true;
   }
   if (status) {
     status.hidden = true;

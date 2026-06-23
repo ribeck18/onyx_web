@@ -508,6 +508,28 @@ a { color: inherit; text-decoration: none; }
 }
 .modal-status[hidden] { display: none; }
 
+/* Indeterminate upload bar: a sliver of accent slides back and forth because the
+   fetch sender gives us no real percentage. Multipart submits reveal it. */
+.modal-progress {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--modal-line);
+  overflow: hidden;
+}
+.modal-progress[hidden] { display: none; }
+.modal-progress-bar {
+  width: 40%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: onyxIndeterminate 1.1s ease-in-out infinite;
+}
+@keyframes onyxIndeterminate {
+  0% { margin-left: -40%; }
+  100% { margin-left: 100%; }
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
