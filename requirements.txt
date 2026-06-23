@@ -2,6 +2,10 @@ sqlalchemy[asyncio]
 fastapi[standard]
 pydantic
 aiosqlite
+asyncpg
+python-dotenv
+authlib
+itsdangerous
 pytest
 pytest-asyncio
 httpx

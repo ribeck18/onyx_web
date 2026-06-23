@@ -51,8 +51,23 @@ def resolve_theme(request: Request) -> str:
     return theme if theme in VALID_THEMES else DEFAULT_THEME
 
 
-def render(request: Request, template_name: str, context: dict[str, Any] | None = None):
-    """Render a template with the resolved theme injected into the context."""
+def render(
+    request: Request,
+    template_name: str,
+    context: dict[str, Any] | None = None,
+    status_code: int = 200,
+):
+    """Render a template with the resolved theme injected into the context.
+
+    ``status_code`` lets a page render with a non-200 status (e.g. the
+    account-denied page returns 403) while still painting the themed shell.
+    """
     full_context = dict(context or {})
     full_context["theme"] = resolve_theme(request)
-    return templates.TemplateResponse(request, template_name, full_context)
+    # The auth middleware resolves the signed-in User onto request.state; expose
+    # it so the shell can show admin-only nav and a sign-out link. It is absent
+    # on public pages (login/denied), where getattr falls back to None.
+    full_context["current_user"] = getattr(request.state, "user", None)
+    return templates.TemplateResponse(
+        request, template_name, full_context, status_code=status_code
+    )
