@@ -6,5 +6,14 @@ from app.models.revision import Revision
 from app.models.file import File
 from app.models.user import User
 from app.models.session import Session
+from app.models.api_token import ApiToken
 
-__all__ = ["Project", "VendorDataItem", "Revision", "File", "User", "Session"]
+__all__ = [
+    "Project",
+    "VendorDataItem",
+    "Revision",
+    "File",
+    "User",
+    "Session",
+    "ApiToken",
+]

@@ -102,6 +102,9 @@ function open_modal(overlay) {
 
 function close_modal(overlay) {
   overlay.hidden = true;
+  if (overlay.dataset.tokenCreated === "true") {
+    location.reload();
+  }
 }
 
 function configure_modal(overlay, trigger) {
@@ -118,6 +121,25 @@ function configure_modal(overlay, trigger) {
   }
   if (submit && trigger.dataset.submitLabel) {
     submit.textContent = trigger.dataset.submitLabel;
+  }
+  submit.hidden = false;
+
+  const token_fields = overlay.querySelector("[data-token-fields]");
+  const token_secret_box = overlay.querySelector("[data-token-secret-box]");
+  const token_secret = overlay.querySelector("[data-token-secret]");
+  const footer_close = overlay.querySelector(".modal-footer [data-modal-close]");
+  delete overlay.dataset.tokenCreated;
+  if (token_fields) {
+    token_fields.hidden = false;
+  }
+  if (token_secret_box) {
+    token_secret_box.hidden = true;
+  }
+  if (token_secret) {
+    token_secret.textContent = "";
+  }
+  if (footer_close) {
+    footer_close.textContent = "Cancel";
   }
 
   // The optional intro line adapts per trigger (e.g. Submit vs Revise copy).
@@ -187,6 +209,10 @@ async function submit_modal_form(form) {
   }
 
   clear_errors(form);
+  if (form.closest('[data-modal="token-modal"]')) {
+    await submit_token_form(form);
+    return;
+  }
   const response =
     form.dataset.encoding === "multipart"
       ? await send_form(form.dataset.method, form.dataset.url, form)
@@ -202,6 +228,38 @@ async function submit_modal_form(form) {
     return;
   }
   show_modal_error(form, message);
+}
+
+async function submit_token_form(form) {
+  const response = await send_json(form.dataset.method, form.dataset.url, json_payload(form));
+  if (!response.ok) {
+    show_modal_error(form, await error_message_from(response));
+    return;
+  }
+  const body = await response.json();
+  const overlay = form.closest("[data-modal]");
+  const token_fields = form.querySelector("[data-token-fields]");
+  const token_secret_box = form.querySelector("[data-token-secret-box]");
+  const token_secret = form.querySelector("[data-token-secret]");
+  const submit = form.querySelector("[data-modal-submit]");
+  const footer_close = form.querySelector(".modal-footer [data-modal-close]");
+
+  overlay.dataset.tokenCreated = "true";
+  if (token_fields) {
+    token_fields.hidden = true;
+  }
+  if (token_secret_box) {
+    token_secret_box.hidden = false;
+  }
+  if (token_secret) {
+    token_secret.textContent = body.secret;
+  }
+  if (submit) {
+    submit.hidden = true;
+  }
+  if (footer_close) {
+    footer_close.textContent = "Done";
+  }
 }
 
 // -------------------------------------------------------------- delete mode

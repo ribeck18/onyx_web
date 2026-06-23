@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import config
+from app.models.api_token import ApiToken
 from app.models.session import Session
 from app.models.user import User
 
@@ -25,6 +26,10 @@ SESSION_COOKIE_NAME = "onyx_session"
 # Session lifetime (ADR 0007): 8h sliding idle window, 7d absolute cap.
 SESSION_IDLE_TIMEOUT = timedelta(hours=8)
 SESSION_ABSOLUTE_CAP = timedelta(days=7)
+
+# Machine/API token lifetime (ADR 0008): 90-day hard expiry.
+API_TOKEN_LIFETIME = timedelta(days=90)
+API_TOKEN_EXPIRY_WARNING = timedelta(days=14)
 
 # Only rewrite last_seen_at when it is older than this, so an active user does
 # not trigger a write on every single request.
@@ -214,3 +219,90 @@ async def delete_session(session: AsyncSession, raw_token: str) -> None:
     if row is not None:
         await session.delete(row)
         await session.flush()
+
+
+async def mint_api_token(
+    session: AsyncSession,
+    user: User,
+    name: str,
+) -> tuple[str, ApiToken]:
+    """Create a per-user PAT and return the raw secret exactly once.
+
+    The row stores only a hash. The raw value is returned to the caller for the
+    creation response and cannot be recovered afterward.
+    """
+    raw_token = generate_token()
+    now = datetime.now(timezone.utc)
+    row = ApiToken(
+        token_hash=hash_token(raw_token),
+        name=name,
+        user_id=user.id,
+        created_at=now,
+        expires_at=now + API_TOKEN_LIFETIME,
+    )
+    session.add(row)
+    await session.flush()
+    return raw_token, row
+
+
+async def list_api_tokens(session: AsyncSession, user: User) -> list[ApiToken]:
+    """Return the current user's PAT metadata, newest first."""
+    result = await session.execute(
+        select(ApiToken)
+        .where(ApiToken.user_id == user.id)
+        .order_by(ApiToken.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+async def get_api_token(
+    session: AsyncSession,
+    user: User,
+    token_id: int,
+) -> ApiToken | None:
+    """Return one PAT owned by this user, or None if it does not exist."""
+    result = await session.execute(
+        select(ApiToken).where(
+            ApiToken.id == token_id,
+            ApiToken.user_id == user.id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def revoke_api_token(session: AsyncSession, api_token: ApiToken) -> ApiToken:
+    """Mark a PAT revoked so it stops authenticating immediately."""
+    if api_token.revoked_at is None:
+        api_token.revoked_at = datetime.now(timezone.utc)
+        await session.flush()
+    return api_token
+
+
+async def resolve_api_token_user(
+    session: AsyncSession,
+    raw_token: str,
+) -> User | None:
+    """Validate a bearer PAT and return its active user, or None.
+
+    Expired, revoked, missing, and deactivated-user tokens are rejected with no
+    redirect. A successful use updates ``last_used_at`` immediately because the
+    middleware owns this auth-state transaction.
+    """
+    result = await session.execute(
+        select(ApiToken).where(ApiToken.token_hash == hash_token(raw_token))
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        return None
+
+    now = datetime.now(timezone.utc)
+    if row.revoked_at is not None or now >= _as_utc(row.expires_at):
+        return None
+
+    user = await session.get(User, row.user_id)
+    if user is None or not user.is_active:
+        return None
+
+    row.last_used_at = now
+    await session.commit()
+    return user

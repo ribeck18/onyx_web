@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 if TYPE_CHECKING:
+    from app.models.api_token import ApiToken
     from app.models.session import Session
 
 
@@ -46,6 +47,11 @@ class User(Base):
 
     sessions: Mapped[list["Session"]] = relationship(
         "Session",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    api_tokens: Mapped[list["ApiToken"]] = relationship(
+        "ApiToken",
         back_populates="user",
         cascade="all, delete-orphan",
     )

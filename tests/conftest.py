@@ -77,18 +77,18 @@ async def client(
     session: AsyncSession,
     tmp_path: Path,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """Drive the real app, authenticated by default, against the test session.
+    """Drive the real app, PAT-authenticated by default, against the test session.
 
-    A User and a minted Session are seeded into the shared in-memory database and
-    the session cookie is sent on every request, so the global auth gate (which
-    runs at the ASGI layer) admits the whole existing suite without per-test
-    edits. get_storage_root is redirected to pytest's per-test tmp_path.
+    A User and a minted PAT are seeded into the shared in-memory database and
+    the bearer header is sent on every request, so the machine auth path doubles
+    as the suite's default auth door. get_storage_root is redirected to pytest's
+    per-test tmp_path.
     """
     user = await seed_user(session)
-    raw_token, _ = await auth_service.mint_session(session, user)
+    raw_token, _ = await auth_service.mint_api_token(session, user, "pytest")
 
     test_client = _build_client(session, tmp_path)
-    test_client.cookies.set(auth_service.SESSION_COOKIE_NAME, raw_token)
+    test_client.headers["Authorization"] = f"Bearer {raw_token}"
     async with test_client:
         yield test_client
     app.dependency_overrides.clear()
@@ -99,9 +99,25 @@ async def admin_client(
     session: AsyncSession,
     tmp_path: Path,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """Drive the app authenticated as an admin, for the account-management routes."""
+    """Drive the app PAT-authenticated as an admin."""
     admin = await seed_user(session, email="admin@onyx.test", is_admin=True)
-    raw_token, _ = await auth_service.mint_session(session, admin)
+    raw_token, _ = await auth_service.mint_api_token(session, admin, "pytest admin")
+
+    test_client = _build_client(session, tmp_path)
+    test_client.headers["Authorization"] = f"Bearer {raw_token}"
+    async with test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def browser_client(
+    session: AsyncSession,
+    tmp_path: Path,
+) -> AsyncGenerator[AsyncClient, None]:
+    """Drive the app with an Onyx session cookie for browser-session tests."""
+    user = await seed_user(session, email="browser@onyx.test")
+    raw_token, _ = await auth_service.mint_session(session, user)
 
     test_client = _build_client(session, tmp_path)
     test_client.cookies.set(auth_service.SESSION_COOKIE_NAME, raw_token)

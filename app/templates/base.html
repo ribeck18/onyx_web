@@ -23,6 +23,7 @@
       <div class="topbar-right">
         {% block vdi_tag %}{% endblock %}
         {% if current_user %}
+          <a class="crumb-link topbar-link" href="/tokens">TOKENS</a>
           {% if current_user.is_admin %}
           <a class="crumb-link topbar-link" href="/admin/users">USERS</a>
           {% endif %}

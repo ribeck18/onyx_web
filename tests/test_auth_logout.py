@@ -9,10 +9,10 @@ from app.models.session import Session
 
 
 async def test_logout_redirects_to_login_and_clears_cookie(
-    client: AsyncClient,
+    browser_client: AsyncClient,
 ) -> None:
     """Logout 302s to /login and expires the session cookie."""
-    response = await client.get("/logout", follow_redirects=False)
+    response = await browser_client.get("/logout", follow_redirects=False)
 
     assert response.status_code == 302
     assert response.headers["location"] == "/login"
@@ -23,24 +23,24 @@ async def test_logout_redirects_to_login_and_clears_cookie(
 
 
 async def test_logout_deletes_the_session_row(
-    client: AsyncClient,
+    browser_client: AsyncClient,
     session: AsyncSession,
 ) -> None:
     """Logout removes the server-side session, so the cookie can't be reused."""
     assert await session.scalar(select(func.count()).select_from(Session)) == 1
 
-    await client.get("/logout", follow_redirects=False)
+    await browser_client.get("/logout", follow_redirects=False)
 
     assert await session.scalar(select(func.count()).select_from(Session)) == 0
 
 
 async def test_after_logout_protected_pages_require_login(
-    client: AsyncClient,
+    browser_client: AsyncClient,
 ) -> None:
     """Once logged out, the same client is anonymous again at the gate."""
-    await client.get("/logout", follow_redirects=False)
+    await browser_client.get("/logout", follow_redirects=False)
 
-    response = await client.get("/", follow_redirects=False)
+    response = await browser_client.get("/", follow_redirects=False)
 
     assert response.status_code == 302
     assert response.headers["location"].startswith("/login")

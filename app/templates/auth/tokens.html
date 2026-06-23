@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "macros/modal.html" import form_modal %}
+
+{% block title %}API Tokens · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">TOKENS</span>
+{% endblock %}
+
+{% block content %}
+<section class="page-header gallery-header">
+  <div>
+    <p class="eyebrow">MACHINE ACCESS</p>
+    <h1 class="h1-home">API Tokens</h1>
+    <p class="header-count">{{ tokens | length }} TOKEN{{ '' if tokens | length == 1 else 'S' }}</p>
+  </div>
+  <div class="header-actions">
+    <button type="button"
+            class="btn-primary"
+            data-modal-open="token-modal"
+            data-mode="create"
+            data-title="Create API Token"
+            data-submit-label="Create Token"
+            data-method="POST"
+            data-url="/api/tokens">+ Create Token</button>
+  </div>
+</section>
+
+<div class="header-rule"></div>
+
+{% if tokens %}
+<table class="vdi-table token-table" id="token-table">
+  <thead>
+    <tr>
+      <th class="col-token-name">TOKEN</th>
+      <th class="col-token-status">STATUS</th>
+      <th class="col-token-date">EXPIRES</th>
+      <th class="col-token-date">LAST USED</th>
+      <th class="col-actions">ACTIONS</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for token in tokens %}
+    <tr class="user-row">
+      <td class="col-token-name">
+        <span class="user-identity">
+          <span class="user-name">{{ token.name }}</span>
+          <span class="user-email">Created {{ token.created_at.strftime("%Y-%m-%d") }}</span>
+        </span>
+      </td>
+      <td class="col-token-status">
+        {% if token.is_revoked %}
+        <span class="badge badge-small fam-bad"><span class="badge-dot" aria-hidden="true"></span>Revoked</span>
+        {% elif token.is_expired %}
+        <span class="badge badge-small fam-bad"><span class="badge-dot" aria-hidden="true"></span>Expired</span>
+        {% elif token.expires_soon %}
+        <span class="badge badge-small fam-info"><span class="badge-dot" aria-hidden="true"></span>Expires soon</span>
+        {% else %}
+        <span class="badge badge-small fam-ok"><span class="badge-dot" aria-hidden="true"></span>Active</span>
+        {% endif %}
+      </td>
+      <td class="col-token-date">
+        <span class="cell-value">{{ token.expires_at.strftime("%Y-%m-%d") }}</span>
+      </td>
+      <td class="col-token-date">
+        {% if token.last_used_at %}
+        <span class="cell-value">{{ token.last_used_at.strftime("%Y-%m-%d") }}</span>
+        {% else %}
+        <span class="cell-dash">Never</span>
+        {% endif %}
+      </td>
+      <td class="col-actions">
+        <div class="row-actions">
+          {% if not token.is_revoked %}
+          <button type="button" class="btn-ghost btn-row btn-row-danger"
+                  data-user-action data-method="POST"
+                  data-url="/api/tokens/{{ token.id }}/revoke"
+                  data-confirm="Revoke {{ token.name }}? Any client using it will fail immediately.">Revoke</button>
+          {% else %}
+          <span class="cell-dash">No actions</span>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<section class="empty-state">
+  <p class="empty-kicker">NO TOKENS</p>
+  <h2>Machine access starts with a named token.</h2>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+{% call form_modal("token-modal", "Create API Token", "Create Token", "A name is required.") %}
+  <div data-token-fields>
+    <p class="modal-help">Name this token for the device or tool that will use it. The secret appears once after creation.</p>
+    <label class="field">
+      <span class="field-label">Name <span class="req">*</span></span>
+      <input type="text" name="name" class="field-input" placeholder="MCP on work laptop" autocomplete="off" required>
+      <span class="field-error" data-field-error hidden></span>
+    </label>
+  </div>
+  <div class="token-secret" data-token-secret-box hidden>
+    <p class="modal-help">Copy this secret now. It will not be shown again after you close this modal.</p>
+    <code class="token-secret-value" data-token-secret></code>
+  </div>
+{% endcall %}
+{% endblock %}

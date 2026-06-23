@@ -8,6 +8,8 @@ import config
 from app.auth.admin_pages import router as admin_pages_router
 from app.auth.middleware import AuthMiddleware
 from app.auth.router import router as user_router
+from app.auth.token_pages import router as token_pages_router
+from app.auth.token_router import router as token_router
 from app.auth.web_pages import router as auth_pages_router
 from app.file.router import router as file_router
 from app.project.router import router as project_router
@@ -39,6 +41,7 @@ async def healthz() -> dict[str, str]:
 
 
 app.include_router(user_router, prefix="/api")
+app.include_router(token_router, prefix="/api")
 app.include_router(project_router, prefix="/api")
 app.include_router(vdi_router, prefix="/api")
 app.include_router(revision_router, prefix="/api")
@@ -47,6 +50,7 @@ app.include_router(file_router, prefix="/api")
 # HTML page routers are mounted at root (no /api prefix).
 app.include_router(auth_pages_router)
 app.include_router(admin_pages_router)
+app.include_router(token_pages_router)
 app.include_router(project_pages_router)
 app.include_router(vdi_pages_router)
 app.include_router(revision_pages_router)
