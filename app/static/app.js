@@ -101,6 +101,13 @@ function open_modal(overlay) {
 }
 
 function close_modal(overlay) {
+  // While a submit is in flight the modal is locked: every dismissal route
+  // (Cancel/close buttons, Escape, backdrop click) funnels through here, so one
+  // guard covers them all.
+  const pending_form = overlay.querySelector("[data-modal-form]");
+  if (pending_form && pending_form.dataset.pending === "true") {
+    return;
+  }
   overlay.hidden = true;
 }
 
@@ -159,6 +166,50 @@ function show_modal_error(form, message) {
   }
 }
 
+// Lock or unlock the modal around an in-flight submit. The submit button is
+// disabled and relabeled (its idle label is stashed for restore), the close
+// controls are disabled, and the aria-live status line is shown. Form fields are
+// left enabled on purpose — disabling them would drop them from FormData and the
+// json_payload selector, silently breaking the request.
+function set_modal_pending(form, is_pending) {
+  const submit = form.querySelector("[data-modal-submit]");
+  const status = form.querySelector("[data-modal-status]");
+  const status_text = form.querySelector("[data-modal-status-text]");
+  const closers = form.querySelectorAll("[data-modal-close]");
+  if (is_pending) {
+    form.dataset.pending = "true";
+    if (submit) {
+      submit.dataset.idleLabel = submit.textContent;
+      submit.textContent = "Saving…";
+      submit.disabled = true;
+    }
+    for (const closer of closers) {
+      closer.disabled = true;
+    }
+    if (status_text) {
+      status_text.textContent = "Saving…";
+    }
+    if (status) {
+      status.hidden = false;
+    }
+    return;
+  }
+  delete form.dataset.pending;
+  if (submit) {
+    if (submit.dataset.idleLabel !== undefined) {
+      submit.textContent = submit.dataset.idleLabel;
+      delete submit.dataset.idleLabel;
+    }
+    submit.disabled = false;
+  }
+  for (const closer of closers) {
+    closer.disabled = false;
+  }
+  if (status) {
+    status.hidden = true;
+  }
+}
+
 function missing_required(form) {
   return Array.from(form.querySelectorAll("[required]:not([disabled])")).some(
     (field) => field.value.trim() === "",
@@ -178,6 +229,10 @@ function show_field_error(form, message) {
 }
 
 async function submit_modal_form(form) {
+  // Ignore re-entry (double-clicks, repeated Enter) while a submit is in flight.
+  if (form.dataset.pending === "true") {
+    return;
+  }
   if (missing_required(form)) {
     show_modal_error(
       form,
@@ -187,6 +242,7 @@ async function submit_modal_form(form) {
   }
 
   clear_errors(form);
+  set_modal_pending(form, true);
   const response =
     form.dataset.encoding === "multipart"
       ? await send_form(form.dataset.method, form.dataset.url, form)
@@ -195,6 +251,7 @@ async function submit_modal_form(form) {
     location.reload();
     return;
   }
+  set_modal_pending(form, false);
   const message = await error_message_from(response);
   // A duplicate item_number is a 409 the user fixes in one field — render it
   // there; anything else is a modal-wide error.

@@ -229,6 +229,12 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer;
 }
 .btn-primary:hover { background: var(--btn-hover); border-color: var(--btn-hover); }
+.btn-primary:disabled,
+.btn-ghost:disabled,
+.modal-close:disabled {
+  opacity: .55;
+  cursor: default;
+}
 
 .btn-ghost {
   display: inline-flex;
@@ -481,6 +487,18 @@ a { color: inherit; text-decoration: none; }
   font-size: 13px;
 }
 .modal-error[hidden] { display: none; }
+
+/* Pending (in-flight submit) state. The status block announces progress via
+   aria-live; the buttons lock so the request cannot be re-fired or dismissed. */
+.modal-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 24px 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.modal-status[hidden] { display: none; }
 
 .modal-footer {
   display: flex;

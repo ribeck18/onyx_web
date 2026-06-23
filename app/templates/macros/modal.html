@@ -16,6 +16,9 @@
       <div class="modal-error" data-modal-error hidden></div>
       {{ caller() }}
     </div>
+    <div class="modal-status" data-modal-status aria-live="polite" hidden>
+      <span class="modal-status-text" data-modal-status-text></span>
+    </div>
     <footer class="modal-footer">
       <button type="button" class="btn-ghost" data-modal-close>Cancel</button>
       <button type="submit" class="btn-primary" data-modal-submit>{{ default_submit }}</button>
