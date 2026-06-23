@@ -29,3 +29,12 @@ _Avoid_: outstanding, pending, unresolved.
 
 ### Submit Code
 A short code on a VDI indicating when its submittal is due relative to the project timeline (e.g. PS — Prior to Shipment).
+
+### User
+A person allowed to use Onyx. Authenticated through the company's Microsoft (Entra) directory and identified canonically by their immutable Entra `oid`; their email is held only for provisioning and display. A User exists solely because an Admin created them — Onyx has no self-signup.
+
+### Admin
+A User additionally privileged to provision and manage other Users. The only role distinction in Onyx: it gates account management, not data — every User can see every Project.
+
+### Provision
+The act of an Admin creating a User (by email) before that person has ever signed in. The account becomes usable the first time the person authenticates with Microsoft, at which point it is permanently bound to their Entra identity.

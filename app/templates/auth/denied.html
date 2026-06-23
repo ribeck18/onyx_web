@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}No access · Onyx{% endblock %}
+
+{% block breadcrumb %}<span class="crumb crumb-current">NO ACCESS</span>{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <div class="auth-card">
+    <p class="eyebrow eyebrow-bad">ACCOUNT NOT FOUND</p>
+    <h1 class="auth-title">You don't have an Onyx account</h1>
+    <p class="auth-sub">
+      Your Microsoft sign-in worked, but no Onyx account is provisioned for it.
+      Contact your admin to request access, then sign in again.
+    </p>
+    <a class="btn-ghost auth-action" href="/logout">Sign out of Onyx</a>
+  </div>
+</section>
+{% endblock %}

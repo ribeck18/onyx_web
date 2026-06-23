@@ -110,7 +110,8 @@ async def test_default_theme_is_dark(client: AsyncClient) -> None:
 
 async def test_theme_cookie_renders_light(client: AsyncClient) -> None:
     """A theme=light cookie renders data-theme=\"light\" server-side."""
-    response = await client.get("/", headers={"Cookie": "theme=light"})
+    client.cookies.set("theme", "light")
+    response = await client.get("/")
 
     assert response.status_code == 200
     assert 'data-theme="light"' in response.text
@@ -118,7 +119,8 @@ async def test_theme_cookie_renders_light(client: AsyncClient) -> None:
 
 async def test_invalid_theme_cookie_falls_back_to_dark(client: AsyncClient) -> None:
     """An unrecognized theme cookie falls back to the dark default."""
-    response = await client.get("/", headers={"Cookie": "theme=neon"})
+    client.cookies.set("theme", "neon")
+    response = await client.get("/")
 
     assert response.status_code == 200
     assert 'data-theme="dark"' in response.text
