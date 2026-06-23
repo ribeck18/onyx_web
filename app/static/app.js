@@ -254,6 +254,24 @@ async function delete_vdi_row(row) {
   }
 }
 
+// ------------------------------------------------------------ user actions
+
+// The admin users screen mutates with one-shot row buttons (deactivate, promote,
+// delete, …) rather than a modal. Each carries its own method + URL and an
+// optional confirm prompt; a 2xx reloads, anything else surfaces the reason.
+async function handle_user_action(button) {
+  const confirm_message = button.dataset.confirm;
+  if (confirm_message && !window.confirm(confirm_message)) {
+    return;
+  }
+  const response = await fetch(button.dataset.url, { method: button.dataset.method });
+  if (response.ok) {
+    location.reload();
+    return;
+  }
+  window.alert(await error_message_from(response));
+}
+
 // ------------------------------------------------------------------- notes
 
 // Notes are the one in-place mutation: PATCH the notes, then update the saved
@@ -363,6 +381,12 @@ document.addEventListener("click", (event) => {
   const notes_save = event.target.closest("[data-notes-save]");
   if (notes_save) {
     save_notes(notes_save);
+    return;
+  }
+
+  const user_action = event.target.closest("[data-user-action]");
+  if (user_action) {
+    handle_user_action(user_action);
     return;
   }
 

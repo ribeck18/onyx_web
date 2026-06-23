@@ -64,6 +64,10 @@ def render(
     """
     full_context = dict(context or {})
     full_context["theme"] = resolve_theme(request)
+    # The auth middleware resolves the signed-in User onto request.state; expose
+    # it so the shell can show admin-only nav and a sign-out link. It is absent
+    # on public pages (login/denied), where getattr falls back to None.
+    full_context["current_user"] = getattr(request.state, "user", None)
     return templates.TemplateResponse(
         request, template_name, full_context, status_code=status_code
     )

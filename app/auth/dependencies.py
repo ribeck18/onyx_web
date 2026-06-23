@@ -24,3 +24,18 @@ def current_user(request: Request) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
     return user
+
+
+def current_admin(request: Request) -> User:
+    """Return the authenticated User only if they are an admin, else 403.
+
+    This is the gate on every account-management endpoint: a non-admin
+    authenticated User is rejected with a machine-readable 403 (ADR 0007 — the
+    admin role gates account management, not data).
+    """
+    user = current_user(request)
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
+        )
+    return user

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "macros/modal.html" import form_modal %}
+
+{% block title %}Users · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">USERS</span>
+{% endblock %}
+
+{% block content %}
+<section class="page-header gallery-header">
+  <div>
+    <p class="eyebrow">ACCESS</p>
+    <h1 class="h1-home">Users</h1>
+    <p class="header-count">{{ rows | length }} USER{{ '' if rows | length == 1 else 'S' }}</p>
+  </div>
+  <div class="header-actions">
+    <button type="button"
+            class="btn-primary"
+            data-modal-open="user-modal"
+            data-mode="create"
+            data-title="Provision User"
+            data-submit-label="Provision"
+            data-method="POST"
+            data-url="/api/users">+ Provision User</button>
+  </div>
+</section>
+
+<div class="header-rule"></div>
+
+<table class="vdi-table" id="user-table">
+  <thead>
+    <tr>
+      <th class="col-name">USER</th>
+      <th class="col-status">STATUS</th>
+      <th class="col-role">ROLE</th>
+      <th class="col-loggedin">LOGGED IN</th>
+      <th class="col-actions">ACTIONS</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    {% set user = row.user %}
+    <tr class="user-row">
+      <td class="col-name">
+        <span class="user-identity">
+          {% if user.display_name %}<span class="user-name">{{ user.display_name }}</span>{% endif %}
+          <span class="user-email">{{ user.email }}</span>
+        </span>
+      </td>
+      <td class="col-status">
+        {% if user.is_active %}
+        <span class="badge badge-small fam-ok"><span class="badge-dot" aria-hidden="true"></span>Active</span>
+        {% else %}
+        <span class="badge badge-small fam-bad"><span class="badge-dot" aria-hidden="true"></span>Inactive</span>
+        {% endif %}
+      </td>
+      <td class="col-role">
+        {% if user.is_admin %}
+        <span class="badge badge-small fam-info"><span class="badge-dot" aria-hidden="true"></span>Admin{% if row.is_break_glass %} · break-glass{% endif %}</span>
+        {% else %}
+        <span class="badge badge-small fam-ns"><span class="badge-dot" aria-hidden="true"></span>User</span>
+        {% endif %}
+      </td>
+      <td class="col-loggedin">
+        {% if user.last_login_at %}
+        <span class="cell-value">Yes</span>
+        {% else %}
+        <span class="cell-dash">Never</span>
+        {% endif %}
+      </td>
+      <td class="col-actions">
+        <div class="row-actions">
+          {% if user.is_active %}
+          <button type="button" class="btn-ghost btn-row"
+                  data-user-action data-method="POST"
+                  data-url="/api/users/{{ user.id }}/deactivate"
+                  data-confirm="Deactivate {{ user.email }}? Their active sessions end immediately.">Deactivate</button>
+          {% else %}
+          <button type="button" class="btn-ghost btn-row"
+                  data-user-action data-method="POST"
+                  data-url="/api/users/{{ user.id }}/reactivate">Reactivate</button>
+          {% endif %}
+
+          {% if user.is_admin %}
+            {% if not row.is_break_glass %}
+            <button type="button" class="btn-ghost btn-row"
+                    data-user-action data-method="POST"
+                    data-url="/api/users/{{ user.id }}/demote">Demote</button>
+            {% endif %}
+          {% else %}
+          <button type="button" class="btn-ghost btn-row"
+                  data-user-action data-method="POST"
+                  data-url="/api/users/{{ user.id }}/promote">Promote</button>
+          {% endif %}
+
+          {% if not user.last_login_at %}
+          <button type="button" class="btn-ghost btn-row btn-row-danger"
+                  data-user-action data-method="DELETE"
+                  data-url="/api/users/{{ user.id }}"
+                  data-confirm="Delete {{ user.email }}? This is only for a never-logged-in account.">Delete</button>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+{% block modals %}
+{% call form_modal("user-modal", "Provision User", "Provision", "An email is required.") %}
+  <p class="modal-help">Create an account by email before the person signs in. Their first Microsoft login binds it to their identity.</p>
+  <label class="field">
+    <span class="field-label">Email <span class="req">*</span></span>
+    <input type="email" name="email" class="field-input" placeholder="person@company.com" autocomplete="off" required>
+    <span class="field-error" data-field-error hidden></span>
+  </label>
+  <label class="field">
+    <span class="field-label">Display Name</span>
+    <input type="text" name="display_name" class="field-input" placeholder="Jordan Vendor" autocomplete="off">
+  </label>
+{% endcall %}
+{% endblock %}

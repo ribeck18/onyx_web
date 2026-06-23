@@ -95,6 +95,22 @@ async def client(
 
 
 @pytest_asyncio.fixture
+async def admin_client(
+    session: AsyncSession,
+    tmp_path: Path,
+) -> AsyncGenerator[AsyncClient, None]:
+    """Drive the app authenticated as an admin, for the account-management routes."""
+    admin = await seed_user(session, email="admin@onyx.test", is_admin=True)
+    raw_token, _ = await auth_service.mint_session(session, admin)
+
+    test_client = _build_client(session, tmp_path)
+    test_client.cookies.set(auth_service.SESSION_COOKIE_NAME, raw_token)
+    async with test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
 async def anonymous_client(
     session: AsyncSession,
     tmp_path: Path,
