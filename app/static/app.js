@@ -299,11 +299,17 @@ async function submit_modal_form(form) {
 }
 
 async function submit_token_form(form) {
+  set_modal_pending(form, true);
   const response = await send_json(form.dataset.method, form.dataset.url, json_payload(form));
   if (!response.ok) {
+    set_modal_pending(form, false);
     show_modal_error(form, await error_message_from(response));
     return;
   }
+  // The token modal does not reload on success, so clear pending here — before the
+  // secret is revealed — to re-enable the footer close button, expose its "Done"
+  // relabel, and release the modal-close guard so the user can read and close it.
+  set_modal_pending(form, false);
   const body = await response.json();
   const overlay = form.closest("[data-modal]");
   const token_fields = form.querySelector("[data-token-fields]");
