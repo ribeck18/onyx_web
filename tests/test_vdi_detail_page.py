@@ -393,6 +393,36 @@ async def test_modal_shell_ships_hidden_progress_bar(
     assert '<div class="modal-progress-bar"></div>' in body
 
 
+async def test_edit_button_present_on_live_page(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The live detail page exposes an Edit button wired to the PATCH endpoint."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.NOT_STARTED)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert 'data-modal-open="vdi-edit-modal"' in body
+    assert f'data-url="/api/vdi/{vdi_id}"' in body
+    assert 'data-method="PATCH"' in body
+
+
+async def test_edit_button_absent_on_historical_render(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The historical revision view is read-only: no Edit button or modal."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.SUBMITTED)
+    revision = await add_submitted_revision(session, vdi_id)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}/revisions/{revision.id}")
+
+    body = response.text
+    assert 'data-modal-open="vdi-edit-modal"' not in body
+    assert 'data-modal="vdi-edit-modal"' not in body
+
+
 async def test_notes_box_is_editable_with_save(
     client: AsyncClient, session: AsyncSession
 ) -> None:

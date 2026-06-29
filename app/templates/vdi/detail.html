@@ -84,6 +84,17 @@
       <span class="hero-word">{{ view_status | status_hero_word }}</span>
       {% if is_returned %}<span class="hero-code">/{{ view_status.value | upper }}</span>{% endif %}
     </div>
+    {% if not is_historical %}
+    <button type="button"
+            class="btn-ghost vdi-edit-btn"
+            data-modal-open="vdi-edit-modal"
+            data-mode="edit"
+            data-title="Edit Vendor Data Item"
+            data-submit-label="Save Changes"
+            data-method="PATCH"
+            data-url="/api/vdi/{{ vdi.id }}"
+            data-prefill='{{ {"name": vdi.name, "submittal_number": vdi.submittal_number, "description": vdi.description, "spec_drawing_reference": vdi.spec_drawing_reference} | tojson }}'>Edit</button>
+    {% endif %}
   </div>
 </section>
 
@@ -260,6 +271,25 @@
 
 {% block modals %}
 {% if not is_historical %}
+{% call form_modal("vdi-edit-modal", "Edit Vendor Data Item", "Save Changes", "Name is required.") %}
+  <label class="field">
+    <span class="field-label">Name <span class="req">*</span></span>
+    <input type="text" name="name" class="field-input" placeholder="Concrete Mix Design" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Submittal Number</span>
+    <input type="text" name="submittal_number" class="field-input" placeholder="26-131-001" autocomplete="off">
+  </label>
+  <label class="field">
+    <span class="field-label">Spec / Drawing Reference</span>
+    <input type="text" name="spec_drawing_reference" class="field-input" placeholder="Spec §3.4 / Dwg S-201" autocomplete="off">
+  </label>
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea name="description" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+
 {% call form_modal("submit-modal", "Submit Revision", "Submit", "A file is required.", "Submit the first revision.", multipart=true) %}
   <label class="field">
     <span class="field-label">Submittal File <span class="req">*</span></span>

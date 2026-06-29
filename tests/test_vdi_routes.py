@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import text
 
+from app.vdi.submit_status import SubmitStatus
 from tests.factories import make_project, make_revision, make_vdi
 
 
@@ -145,6 +146,28 @@ async def test_patch_updates_only_supplied_fields(
     assert body["name"] == "Renamed"
     assert body["notes"] == "keep me"
     assert body["submit_code"] == "ptc"
+
+
+async def test_patch_descriptive_field_succeeds_after_submission(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A descriptive field (spec/drawing ref) is editable even once submitted."""
+    project = make_project()
+    vdi = make_vdi(project, item_number=3, name="Concrete Mix Design")
+    vdi.status = SubmitStatus.SUBMITTED
+    session.add(vdi)
+    await session.flush()
+    vdi_id = vdi.id
+    await session.commit()
+
+    response = await client.patch(
+        f"/api/vdi/{vdi_id}", json={"spec_drawing_reference": "Spec §9.1"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["spec_drawing_reference"] == "Spec §9.1"
+    assert body["status"] == "submitted"
 
 
 async def test_patch_cannot_set_status(

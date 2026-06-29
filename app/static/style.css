@@ -658,6 +658,8 @@ a { color: inherit; text-decoration: none; }
 
 .vdi-hero-status { text-align: right; }
 
+.vdi-edit-btn { margin-top: 18px; }
+
 .hero-status {
   margin-top: 10px;
   display: inline-flex;
