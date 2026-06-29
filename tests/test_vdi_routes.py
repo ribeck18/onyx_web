@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import text
 
+from app.vdi.approval_type import ApprovalType
 from app.vdi.submit_status import SubmitStatus
 from tests.factories import make_project, make_revision, make_vdi
 
@@ -168,6 +169,71 @@ async def test_patch_descriptive_field_succeeds_after_submission(
     body = response.json()
     assert body["spec_drawing_reference"] == "Spec §9.1"
     assert body["status"] == "submitted"
+
+
+async def test_patch_submission_field_succeeds_while_not_started(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A NOT_STARTED VDI's submission fields are freely editable."""
+    project_id = await seed_project(session)
+    created = await client.post("/api/vdi", json=vdi_payload(project_id, item_number=4))
+    vdi_id = created.json()["id"]
+
+    response = await client.patch(
+        f"/api/vdi/{vdi_id}",
+        json={
+            "item_number": 9,
+            "approval_type": "information_only",
+            "submit_code": "afi",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["item_number"] == 9
+    assert body["approval_type"] == "information_only"
+    assert body["submit_code"] == "afi"
+
+
+async def test_patch_locked_field_on_submitted_returns_409(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Changing a submission field once submitted is a 409 conflict."""
+    project = make_project()
+    vdi = make_vdi(project, item_number=4, name="Concrete Mix Design")
+    vdi.status = SubmitStatus.SUBMITTED
+    session.add(vdi)
+    await session.flush()
+    vdi_id = vdi.id
+    await session.commit()
+
+    response = await client.patch(f"/api/vdi/{vdi_id}", json={"item_number": 99})
+
+    assert response.status_code == 409
+
+
+async def test_patch_locked_field_unchanged_value_on_submitted_succeeds(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Resubmitting a locked field with its current value is a no-op, not a 409."""
+    project = make_project()
+    vdi = make_vdi(project, item_number=4, name="Concrete Mix Design")
+    vdi.status = SubmitStatus.SUBMITTED
+    vdi.approval_type = ApprovalType.MANDATORY_APPROVAL
+    session.add(vdi)
+    await session.flush()
+    vdi_id = vdi.id
+    await session.commit()
+
+    response = await client.patch(
+        f"/api/vdi/{vdi_id}",
+        json={"item_number": 4, "approval_type": "mandatory_approval", "name": "Renamed"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Renamed"
+    assert body["item_number"] == 4
 
 
 async def test_patch_cannot_set_status(

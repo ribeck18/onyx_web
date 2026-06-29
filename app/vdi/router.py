@@ -15,6 +15,11 @@ from app.vdi.submit_status import SubmitStatus
 
 router = APIRouter(prefix="/vdi", tags=["vdi"])
 
+# Fields that record the terms under which a VDI was submitted to the buyer.
+# They lock once the VDI leaves NOT_STARTED so the stored record cannot drift
+# from what was actually submitted (ADR 0010).
+LOCKED_AFTER_SUBMISSION = ("item_number", "approval_type", "submit_code")
+
 
 @router.post("", response_model=VdiRead, status_code=status.HTTP_201_CREATED)
 async def create_vdi(
@@ -78,6 +83,22 @@ async def update_vdi(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Vendor data item not found"
         )
+
+    # Guard the submission-defining fields once the VDI has been submitted. The
+    # check is on actual change, so a no-op resubmit of the same value passes
+    # (read-modify-write clients are not punished). Lives in the route layer,
+    # consistent with the create route's uniqueness check (ADR 0010).
+    if vendor_data_item.status is not SubmitStatus.NOT_STARTED:
+        supplied = data.model_dump(exclude_unset=True)
+        for field in LOCKED_AFTER_SUBMISSION:
+            if field in supplied and supplied[field] != getattr(
+                vendor_data_item, field
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Submission fields are locked once the VDI is submitted",
+                )
+
     vendor_data_item = await service.update_vdi(session, vendor_data_item, data)
     await session.commit()
     return VdiRead.model_validate(vendor_data_item)
