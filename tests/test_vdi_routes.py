@@ -236,6 +236,53 @@ async def test_patch_locked_field_unchanged_value_on_submitted_succeeds(
     assert body["item_number"] == 4
 
 
+async def test_patch_item_number_collision_returns_409(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Editing item_number onto a sibling's number is rejected like create."""
+    project_id = await seed_project(session)
+    await client.post("/api/vdi", json=vdi_payload(project_id, item_number=1))
+    second = await client.post("/api/vdi", json=vdi_payload(project_id, item_number=2))
+    second_id = second.json()["id"]
+
+    response = await client.patch(f"/api/vdi/{second_id}", json={"item_number": 1})
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Item number already used in this project"
+
+
+async def test_patch_item_number_unchanged_skips_collision_check(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Resubmitting item_number with its current value is a no-op, not a 409."""
+    project_id = await seed_project(session)
+    created = await client.post("/api/vdi", json=vdi_payload(project_id, item_number=3))
+    vdi_id = created.json()["id"]
+
+    response = await client.patch(
+        f"/api/vdi/{vdi_id}", json={"item_number": 3, "name": "Renamed"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["item_number"] == 3
+    assert body["name"] == "Renamed"
+
+
+async def test_patch_item_number_to_free_number_succeeds(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Editing item_number to a number no sibling holds succeeds."""
+    project_id = await seed_project(session)
+    created = await client.post("/api/vdi", json=vdi_payload(project_id, item_number=3))
+    vdi_id = created.json()["id"]
+
+    response = await client.patch(f"/api/vdi/{vdi_id}", json={"item_number": 8})
+
+    assert response.status_code == 200
+    assert response.json()["item_number"] == 8
+
+
 async def test_patch_cannot_set_status(
     client: AsyncClient, session: AsyncSession
 ) -> None:

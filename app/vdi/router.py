@@ -84,12 +84,13 @@ async def update_vdi(
             status_code=status.HTTP_404_NOT_FOUND, detail="Vendor data item not found"
         )
 
+    supplied = data.model_dump(exclude_unset=True)
+
     # Guard the submission-defining fields once the VDI has been submitted. The
     # check is on actual change, so a no-op resubmit of the same value passes
     # (read-modify-write clients are not punished). Lives in the route layer,
     # consistent with the create route's uniqueness check (ADR 0010).
     if vendor_data_item.status is not SubmitStatus.NOT_STARTED:
-        supplied = data.model_dump(exclude_unset=True)
         for field in LOCKED_AFTER_SUBMISSION:
             if field in supplied and supplied[field] != getattr(
                 vendor_data_item, field
@@ -98,6 +99,23 @@ async def update_vdi(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Submission fields are locked once the VDI is submitted",
                 )
+
+    # Reject an item-number collision with a sibling in the same project,
+    # mirroring the create route. Only an actual change is checked, so any match
+    # is necessarily a different VDI (this one still holds its old number).
+    new_item_number = supplied.get("item_number")
+    if (
+        new_item_number is not None
+        and new_item_number != vendor_data_item.item_number
+    ):
+        sibling = await service.get_vdi_by_item_number(
+            session, vendor_data_item.project_id, new_item_number
+        )
+        if sibling is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Item number already used in this project",
+            )
 
     vendor_data_item = await service.update_vdi(session, vendor_data_item, data)
     await session.commit()
