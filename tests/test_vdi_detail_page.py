@@ -142,7 +142,9 @@ async def test_specification_uses_human_labels(
     body = response.text
     assert "Mandatory Approval" in body
     assert "Prior to Construction" in body  # PTC full label
-    assert "mandatory_approval" not in body
+    # The raw enum may legitimately appear as a form option value / prefill,
+    # but never as rendered display text in a spec cell.
+    assert ">mandatory_approval<" not in body
 
 
 async def test_preview_pdf_branch(client: AsyncClient, session: AsyncSession) -> None:
@@ -391,6 +393,69 @@ async def test_modal_shell_ships_hidden_progress_bar(
     body = response.text
     assert '<div class="modal-progress" data-modal-progress hidden>' in body
     assert '<div class="modal-progress-bar"></div>' in body
+
+
+async def test_edit_button_present_on_live_page(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The live detail page exposes an Edit button wired to the PATCH endpoint."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.NOT_STARTED)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert 'data-modal-open="vdi-edit-modal"' in body
+    assert f'data-url="/api/vdi/{vdi_id}"' in body
+    assert 'data-method="PATCH"' in body
+
+
+async def test_edit_button_absent_on_historical_render(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The historical revision view is read-only: no Edit button or modal."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.SUBMITTED)
+    revision = await add_submitted_revision(session, vdi_id)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}/revisions/{revision.id}")
+
+    body = response.text
+    assert 'data-modal-open="vdi-edit-modal"' not in body
+    assert 'data-modal="vdi-edit-modal"' not in body
+
+
+async def test_edit_modal_shows_submission_fields_when_not_started(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A NOT_STARTED VDI's edit modal exposes the three submission fields."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.NOT_STARTED)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    assert 'name="item_number"' in body
+    assert 'name="approval_type"' in body
+    assert 'name="submit_code"' in body
+
+
+async def test_edit_modal_omits_submission_fields_once_submitted(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Once submitted, the locked submission fields are absent from the modal."""
+    vdi_id = await make_vdi_row(session, status=SubmitStatus.SUBMITTED)
+    await session.commit()
+
+    response = await client.get(f"/vdi/{vdi_id}")
+
+    body = response.text
+    # The Edit modal is still present (descriptive fields remain editable)...
+    assert 'data-modal="vdi-edit-modal"' in body
+    # ...but the three locked fields are gone entirely, not merely hidden.
+    assert 'name="item_number"' not in body
+    assert 'name="approval_type"' not in body
+    assert 'name="submit_code"' not in body
 
 
 async def test_notes_box_is_editable_with_save(

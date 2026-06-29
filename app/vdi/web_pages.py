@@ -13,6 +13,7 @@ from app.database import get_session
 from app.project import service as project_service
 from app.vdi import service as vdi_service
 from app.vdi.revision import service as revision_service
+from app.vdi.submit_status import SubmitStatus
 from app.web.templating import render
 
 router = APIRouter(tags=["pages"])
@@ -45,5 +46,6 @@ async def vdi_detail(
             "project": project,
             "revisions": revisions,
             "latest_revision": latest_revision,
+            "submission_fields_editable": vdi.status is SubmitStatus.NOT_STARTED,
         },
     )
