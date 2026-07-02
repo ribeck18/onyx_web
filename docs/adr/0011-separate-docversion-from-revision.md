@@ -1,0 +1,13 @@
+# Project Document versions use a separate DocVersion model, not the VDI Revision
+
+Project Documents (drawings, specs, contracts, addendums, and the like) are versioned through a dedicated `DocVersion` model in its own `doc_versions` table, parallel to but independent from the VDI `Revision` model. `DocVersion` carries only what version control needs — a server-assigned `version_number` (max+1 per document, 1-based), the attached file, an optional `description`, and `created_at` — and a `ProjectDoc` can never exist with zero versions. It has no submit/return cycle, no return code, no lifecycle status. The two models are never unified and never share a table.
+
+We chose separate models because the two "revision" concepts mean genuinely different things. A VDI Revision is a submittal *we* drive through the buyer's approval — a submit-then-return round-trip that owns the VDI's status and carries return codes (A/B/C/D). A DocVersion is a document *we receive and record* — pure internal version control of something an external party issues, with no approval and no status to synchronize. Forcing them into one abstraction would drag approval-lifecycle fields (return file, return code, status) into documents that have no use for them, and couple two domains that revise for unrelated reasons. The trade-off is a second versioning table and some structurally similar code (both auto-number per parent, both hang a file off each version, both cascade-delete from their parent); we accept that duplication to keep each domain's meaning clean and independently evolvable.
+
+Like VDI Revisions (ADR 0002), DocVersions are lifecycle-created rather than generic CRUD: `version_number` is always server-assigned, versions come into being only through `create_project_doc` (Version 1) and `add_version`, and there is no `POST /versions` with a hand-typed number. Unlike VDI, a document's *first* version is created atomically with the document itself, because a ProjectDoc with no versions is not a valid state.
+
+## Considered options
+
+- **Reuse the `Revision` model for both** — rejected: imports approval-lifecycle semantics (return codes, submit/return status) into documents that are never submitted or approved, and couples two unrelated revision meanings.
+- **A single generalized "versioned document" abstraction over both** — rejected: the shared surface is shallow (auto-number + attached file), while the differences (approval lifecycle vs. none, buyer-driven vs. internally-recorded) are the substance; the abstraction would leak.
+- **Separate `DocVersion` model (chosen)** — each domain keeps its own meaning; modest structural duplication is the price.

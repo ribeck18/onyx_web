@@ -11,6 +11,12 @@ A single piece of required vendor documentation that belongs to a Project. Track
 ### Revision
 One round-trip with the buyer on a VDI — a submittal sent out and (optionally) a return received back. All history lives in Revisions; the VDI status always reflects the current state. A Revision always represents a real submittal; it is never a draft.
 
+### Project Document (ProjectDoc)
+A document associated with a Project that we **receive and record** but do not submit or get approved — drawings, specifications, special conditions, contracts, the vendor data schedule sheet, addendums, and the like. Contrast with a Vendor Data Item, which we submit to the buyer for approval. Explicitly excludes RFIs, RECs, and JSAs (future, separately-modeled features). One ProjectDoc represents one logical document; a 40-page drawing set is a single document stored as one file per version. Carries our own **label** (a required, non-unique name we assign — e.g. "E-101", "Contract"), set once and reused across all its versions, and a required document **type**. Has no lifecycle/status of its own.
+
+### Document Version (DocVersion)
+An internally-numbered version of a Project Document — version control, not a submittal. Each time we receive an updated file we record a new DocVersion; the file always lives on the version, never on the Project Document itself. Each version carries an auto-incremented `version_number` (1, 2, 3…) that **we** generate as `max + 1` per document — the issuer does not assign it. Its human-facing name "{label} Version {n}" is composed for display from the parent's label, not stored. Distinct from a (VDI) Revision: no submit/return cycle, no return code, no external assignment. The current version is simply the most recently created one; the Project Document's updated date tracks that version's creation. A Project Document can never have zero versions — creating one always records Version 1 with its file.
+
 ### Item Number
 The identifier the buyer assigns to a VDI when handing us the list of required vendor data. Unique within a Project. Frequently does not match the Submittal Number.
 
