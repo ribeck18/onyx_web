@@ -41,6 +41,7 @@ templates.env.filters["file_extension"] = file_preview.file_extension
 # labels are never duplicated in JS). Keyed by enum member, valued by human label.
 templates.env.globals["approval_type_options"] = labels.APPROVAL_TYPE_LABELS
 templates.env.globals["submit_code_options"] = labels.SUBMIT_CODE_LABELS
+templates.env.globals["document_type_options"] = labels.DOCUMENT_TYPE_LABELS
 
 
 def resolve_theme(request: Request) -> str:
