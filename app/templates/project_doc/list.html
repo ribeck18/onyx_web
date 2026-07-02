@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "macros/badge.html" import type_chip %}
+
+{% block title %}{{ project.name }} Documents · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}">{{ project.project_number }}</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">DOCUMENTS</span>
+{% endblock %}
+
+{% block content %}
+<section class="project-detail-header">
+  <div>
+    <p class="detail-number">{{ project.project_number }}</p>
+    <h1 class="h1-detail">Documents</h1>
+  </div>
+</section>
+
+<div class="gradient-rule"></div>
+
+<section class="section-header">
+  <p class="section-label">PROJECT DOCUMENTS</p>
+</section>
+
+{% if project_docs %}
+<table class="vdi-table" id="doc-table">
+  <thead>
+    <tr>
+      <th class="col-name">LABEL</th>
+      <th class="col-type">TYPE</th>
+      <th class="col-version">CURRENT VERSION</th>
+      <th class="col-updated">UPDATED</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for doc in project_docs %}
+    <tr class="vdi-row" data-href="/project-docs/{{ doc.id }}">
+      <td class="col-name">
+        <a class="vdi-row-link" href="/project-docs/{{ doc.id }}">{{ doc.label }}</a>
+      </td>
+      <td class="col-type">{{ type_chip(doc.type) }}</td>
+      <td class="col-version">
+        <span class="cell-value">Version {{ doc.current_version.version_number }}</span>
+      </td>
+      <td class="col-updated">
+        <span class="cell-value">{{ doc.updated_at.strftime("%Y-%m-%d") }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">No documents yet.</p>
+  <p class="empty-sub">Documents received for this project will be listed here.</p>
+</div>
+{% endif %}
+{% endblock %}

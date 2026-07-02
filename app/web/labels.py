@@ -9,6 +9,7 @@ meanings minimal to avoid drift — the meaning lives here.
 
 from __future__ import annotations
 
+from app.project_doc.document_type import DocumentType
 from app.vdi.approval_type import ApprovalType
 from app.vdi.submit_code import SubmitCode
 from app.vdi.submit_status import SubmitStatus
@@ -71,6 +72,28 @@ SUBMIT_CODE_LABELS: dict[SubmitCode, str] = {
 }
 
 
+# Document type → human chip label. Chips never show the raw enum value.
+DOCUMENT_TYPE_LABELS: dict[DocumentType, str] = {
+    DocumentType.DRAWING: "Drawing",
+    DocumentType.SPECIFICATION: "Specification",
+    DocumentType.SPECIAL_CONDITION: "Special Condition",
+    DocumentType.CONTRACT: "Contract",
+    DocumentType.VENDOR_DATA_SCHEDULE: "Vendor Data Schedule",
+    DocumentType.ADDENDUM: "Addendum",
+}
+
+# Document type → color family. Type chips paint from the same token groups as
+# status badges so both themes work with no extra per-type rules.
+DOCUMENT_TYPE_FAMILIES: dict[DocumentType, str] = {
+    DocumentType.DRAWING: "info",
+    DocumentType.SPECIFICATION: "ok",
+    DocumentType.SPECIAL_CONDITION: "bad",
+    DocumentType.CONTRACT: "ns",
+    DocumentType.VENDOR_DATA_SCHEDULE: "info",
+    DocumentType.ADDENDUM: "ns",
+}
+
+
 def status_label(status: SubmitStatus) -> str:
     """Return the UPPERCASE badge string for a submit status."""
     return STATUS_LABELS[status]
@@ -99,3 +122,13 @@ def submit_code_label(submit_code: SubmitCode) -> str:
 def submit_code_short(submit_code: SubmitCode) -> str:
     """Return the compact UPPERCASE code shown in the narrow table column."""
     return submit_code.value.upper()
+
+
+def document_type_label(document_type: DocumentType) -> str:
+    """Return the human chip label for a document type."""
+    return DOCUMENT_TYPE_LABELS[document_type]
+
+
+def document_type_family(document_type: DocumentType) -> str:
+    """Return the color-family key (ns/info/ok/bad) for a document type."""
+    return DOCUMENT_TYPE_FAMILIES[document_type]

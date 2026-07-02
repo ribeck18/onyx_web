@@ -8,3 +8,11 @@
   <span class="badge-dot" aria-hidden="true"></span>{{ status | status_label }}
 </span>
 {% endmacro %}
+
+{#
+  Document type chip — the human type label colored by the type's family, on
+  the same fam-* token groups as the badge so both themes paint it for free.
+#}
+{% macro type_chip(document_type) %}
+<span class="type-chip fam-{{ document_type | document_type_family }}">{{ document_type | document_type_label }}</span>
+{% endmacro %}

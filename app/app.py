@@ -15,6 +15,7 @@ from app.file.router import router as file_router
 from app.project.router import router as project_router
 from app.project.web_pages import router as project_pages_router
 from app.project_doc.router import router as project_doc_router
+from app.project_doc.web_pages import router as project_doc_pages_router
 from app.vdi.revision.router import router as revision_router
 from app.vdi.revision.web_pages import router as revision_pages_router
 from app.vdi.router import router as vdi_router
@@ -54,6 +55,7 @@ app.include_router(auth_pages_router)
 app.include_router(admin_pages_router)
 app.include_router(token_pages_router)
 app.include_router(project_pages_router)
+app.include_router(project_doc_pages_router)
 app.include_router(vdi_pages_router)
 app.include_router(revision_pages_router)
 

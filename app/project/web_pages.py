@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.project import service as project_service
+from app.project_doc import service as project_doc_service
 from app.vdi import service as vdi_service
 from app.vdi.service import OPEN_STATUSES
 from app.web.templating import render
@@ -56,8 +57,9 @@ async def project_detail(
             status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
     vdis = await vdi_service.get_vdis(session, project_id)
+    document_count = await project_doc_service.count_project_docs(session, project_id)
     return render(
         request,
         "project/detail.html",
-        {"project": project, "vdis": vdis},
+        {"project": project, "vdis": vdis, "document_count": document_count},
     )

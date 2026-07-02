@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.doc_version import DocVersion
@@ -92,6 +92,16 @@ async def delete_project_doc(session: AsyncSession, project_doc: ProjectDoc) -> 
     """Delete a document; ORM cascade removes all of its versions."""
     await session.delete(project_doc)
     await session.flush()
+
+
+async def count_project_docs(session: AsyncSession, project_id: int) -> int:
+    """Return how many project documents one project has."""
+    result = await session.execute(
+        select(func.count())
+        .select_from(ProjectDoc)
+        .where(ProjectDoc.project_id == project_id)
+    )
+    return result.scalar_one()
 
 
 async def add_version(

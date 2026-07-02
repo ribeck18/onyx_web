@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "macros/badge.html" import type_chip %}
+
+{% block title %}{{ doc.label }} · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}">{{ project.project_number }}</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}/documents">DOCUMENTS</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">{{ doc.label }}</span>
+{% endblock %}
+
+{% block content %}
+<section class="project-detail-header">
+  <div>
+    <p class="detail-number">
+      {% if doc.doc_number %}{{ doc.doc_number }}{% else %}&mdash;{% endif %}
+    </p>
+    <h1 class="h1-detail">{{ doc.label }}</h1>
+    <p class="doc-type-line">{{ type_chip(doc.type) }}</p>
+    {% if doc.description %}
+    <p class="detail-description">{{ doc.description }}</p>
+    {% endif %}
+  </div>
+</section>
+
+<div class="gradient-rule"></div>
+
+<section class="section-header">
+  <p class="section-label">VERSION HISTORY</p>
+</section>
+
+<ul class="doc-version-list">
+  {% for version in doc_versions | reverse %}
+  <li class="doc-version-row">
+    <div class="doc-version-main">
+      {# The display name is composed from the current label, never stored, so
+         renaming the document renames every version. #}
+      <span class="doc-version-name">{{ doc.label }} Version {{ version.version_number }}</span>
+      {% if version.description %}
+      <span class="doc-version-desc">{{ version.description }}</span>
+      {% endif %}
+    </div>
+    <span class="cell-value">{{ version.created_at.strftime("%Y-%m-%d") }}</span>
+    <a class="btn-ghost" href="/api/files/{{ version.file_id }}" download>Download</a>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

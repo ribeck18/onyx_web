@@ -1323,3 +1323,49 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: .02em;
   color: var(--faint);
 }
+
+/* ---------------------------------------------------------------- project documents */
+
+/* Document type chip — paints from the fam-* token group set on the element,
+   so both themes work with no per-type rules. */
+.type-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  background: var(--k-soft);
+  color: var(--k-text);
+  border: 1px solid var(--k-line);
+}
+
+.doc-type-line { margin: 10px 0 0; }
+
+.doc-version-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc-version-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.doc-version-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-right: auto;
+}
+
+.doc-version-name { color: var(--text); font-weight: 500; }
+.doc-version-desc { color: var(--muted); font-size: 13px; }

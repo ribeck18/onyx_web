@@ -32,6 +32,8 @@ templates.env.filters["status_hero_word"] = labels.status_hero_word
 templates.env.filters["approval_type_label"] = labels.approval_type_label
 templates.env.filters["submit_code_label"] = labels.submit_code_label
 templates.env.filters["submit_code_short"] = labels.submit_code_short
+templates.env.filters["document_type_label"] = labels.document_type_label
+templates.env.filters["document_type_family"] = labels.document_type_family
 templates.env.filters["preview_kind"] = file_preview.preview_kind
 templates.env.filters["file_extension"] = file_preview.file_extension
 
