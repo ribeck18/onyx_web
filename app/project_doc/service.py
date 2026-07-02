@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
@@ -66,3 +67,52 @@ async def get_project_docs(
         .order_by(ProjectDoc.label)
     )
     return list(result.scalars().all())
+
+
+async def add_version(
+    session: AsyncSession,
+    project_doc: ProjectDoc,
+    file: File,
+    description: str | None = None,
+) -> DocVersion:
+    """Record the next version of a document and flush.
+
+    The version number is always server-assigned as max-existing-plus-one
+    (ADR 0002/0011) — callers never hand one in. The parent document's
+    updated_at is bumped so it reflects its latest version; both are flushed
+    together so the route commits them atomically.
+    """
+    doc_version = DocVersion(
+        version_number=project_doc.current_version.version_number + 1,
+        file=file,
+        description=description,
+    )
+    project_doc.versions.append(doc_version)
+    project_doc.updated_at = datetime.now(timezone.utc)
+    await session.flush()
+    return doc_version
+
+
+async def get_versions(
+    session: AsyncSession, project_doc_id: int
+) -> list[DocVersion]:
+    """Return a document's versions, oldest first."""
+    result = await session.execute(
+        select(DocVersion)
+        .where(DocVersion.project_doc_id == project_doc_id)
+        .order_by(DocVersion.version_number)
+    )
+    return list(result.scalars().all())
+
+
+async def get_version(
+    session: AsyncSession, project_doc_id: int, version_id: int
+) -> DocVersion | None:
+    """Return one version scoped to its parent document, or None if not found."""
+    result = await session.execute(
+        select(DocVersion).where(
+            DocVersion.id == version_id,
+            DocVersion.project_doc_id == project_doc_id,
+        )
+    )
+    return result.scalar_one_or_none()

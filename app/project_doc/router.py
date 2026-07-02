@@ -11,7 +11,7 @@ from app.file.dependencies import get_storage_root
 from app.project import service as project_service
 from app.project_doc import service
 from app.project_doc.document_type import DocumentType
-from app.project_doc.schema import ProjectDocRead
+from app.project_doc.schema import DocVersionRead, ProjectDocRead
 
 router = APIRouter(prefix="/project-docs", tags=["project-docs"])
 
@@ -49,6 +49,66 @@ async def create_project_doc(
     )
     await session.commit()
     return ProjectDocRead.model_validate(project_doc)
+
+
+@router.post(
+    "/{project_doc_id}/versions",
+    response_model=DocVersionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_version(
+    project_doc_id: int,
+    file: UploadFile = File(...),
+    description: str | None = Form(None),
+    session: AsyncSession = Depends(get_session),
+    storage_root: Path = Depends(get_storage_root),
+) -> DocVersionRead:
+    """Record the next version of a document with a server-assigned number.
+
+    The document check runs before the file is saved so a rejected add (404)
+    never writes orphaned bytes; save_upload then rejects an empty upload (400).
+    """
+    project_doc = await service.get_project_doc(session, project_doc_id)
+    if project_doc is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project document not found"
+        )
+    stored_file = await file_service.save_upload(session, file, storage_root)
+    doc_version = await service.add_version(
+        session, project_doc, stored_file, description
+    )
+    await session.commit()
+    return DocVersionRead.model_validate(doc_version)
+
+
+@router.get("/{project_doc_id}/versions", response_model=list[DocVersionRead])
+async def list_versions(
+    project_doc_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> list[DocVersionRead]:
+    """Return a document's versions, oldest first."""
+    project_doc = await service.get_project_doc(session, project_doc_id)
+    if project_doc is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project document not found"
+        )
+    doc_versions = await service.get_versions(session, project_doc_id)
+    return [DocVersionRead.model_validate(doc_version) for doc_version in doc_versions]
+
+
+@router.get("/{project_doc_id}/versions/{version_id}", response_model=DocVersionRead)
+async def get_version(
+    project_doc_id: int,
+    version_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> DocVersionRead:
+    """Return a single version, scoped to its parent document."""
+    doc_version = await service.get_version(session, project_doc_id, version_id)
+    if doc_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document version not found"
+        )
+    return DocVersionRead.model_validate(doc_version)
 
 
 @router.get("", response_model=list[ProjectDocRead])
