@@ -8,6 +8,17 @@ from app.file.schema import FileRead
 from app.project_doc.document_type import DocumentType
 
 
+class ProjectDocUpdate(BaseModel):
+    label: str | None = None
+    type: DocumentType | None = None
+    doc_number: str | None = None
+    description: str | None = None
+
+
+class DocVersionUpdate(BaseModel):
+    description: str | None = None
+
+
 class DocVersionRead(BaseModel):
     id: int
     project_doc_id: int

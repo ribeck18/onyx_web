@@ -167,3 +167,63 @@ async def test_version_file_round_trips_through_file_route(
     download = await client.get(f"/api/files/{file_info['id']}")
     assert download.status_code == 200
     assert download.content == content
+
+
+async def test_patch_edits_metadata_with_no_field_locking(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Every metadata field is freely editable at any time (no lifecycle)."""
+    project_id = await seed_project(session)
+    created = await create_doc(client, project_id, doc_number="DWG-7")
+
+    response = await client.patch(
+        f"/api/project-docs/{created['id']}",
+        json={
+            "label": "E-102",
+            "type": "specification",
+            "doc_number": "SPEC-1",
+            "description": "renumbered by the buyer",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["label"] == "E-102"
+    assert body["type"] == "specification"
+    assert body["doc_number"] == "SPEC-1"
+    assert body["description"] == "renumbered by the buyer"
+    assert body["current_version"]["version_number"] == 1
+
+
+async def test_patch_unknown_id_returns_404(client: AsyncClient) -> None:
+    """PATCH for a non-existent document is a 404."""
+    response = await client.patch("/api/project-docs/999", json={"label": "E-102"})
+
+    assert response.status_code == 404
+
+
+async def test_delete_document_cascades_to_versions(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """DELETE removes the document row and every one of its version rows."""
+    project_id = await seed_project(session)
+    doc = await create_doc(client, project_id)
+    await client.post(
+        f"/api/project-docs/{doc['id']}/versions",
+        files={"file": ("v2.pdf", b"newer bytes", "application/pdf")},
+    )
+
+    response = await client.delete(f"/api/project-docs/{doc['id']}")
+
+    assert response.status_code == 204
+    doc_count = await session.execute(text("SELECT COUNT(*) FROM project_docs"))
+    assert doc_count.scalar_one() == 0
+    version_count = await session.execute(text("SELECT COUNT(*) FROM doc_versions"))
+    assert version_count.scalar_one() == 0
+
+
+async def test_delete_unknown_id_returns_404(client: AsyncClient) -> None:
+    """DELETE for a non-existent document is a 404."""
+    response = await client.delete("/api/project-docs/999")
+
+    assert response.status_code == 404

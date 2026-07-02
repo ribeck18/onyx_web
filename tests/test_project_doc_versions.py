@@ -156,3 +156,97 @@ async def test_new_version_file_round_trips_and_old_version_immutable(
     assert new_download.content == new_content
     old_download = await client.get(f"/api/files/{original_file_id}")
     assert old_download.content == original_content
+
+
+async def test_patch_version_edits_only_description(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The description is editable; the file and version number are immutable."""
+    project_id = await seed_project(session)
+    doc = await create_doc(client, project_id)
+    version = doc["current_version"]
+
+    response = await client.patch(
+        f"/api/project-docs/{doc['id']}/versions/{version['id']}",
+        json={
+            "description": "issued for review",
+            "version_number": 99,
+            "file_id": 12345,
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["description"] == "issued for review"
+    assert body["version_number"] == version["version_number"]
+    assert body["file"]["id"] == version["file"]["id"]
+
+
+async def test_patch_version_scoped_to_parent_document(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Editing a version under a document it does not belong to is a 404."""
+    project_id = await seed_project(session)
+    first_doc = await create_doc(client, project_id)
+    second_doc = await create_doc(client, project_id, label="E-102")
+    version = await add_version(client, first_doc["id"])
+
+    response = await client.patch(
+        f"/api/project-docs/{second_doc['id']}/versions/{version['id']}",
+        json={"description": "should not apply"},
+    )
+
+    assert response.status_code == 404
+
+
+async def test_delete_non_last_version_succeeds(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A version can be deleted while others remain; history closes around it."""
+    project_id = await seed_project(session)
+    doc = await create_doc(client, project_id)
+    second = await add_version(client, doc["id"])
+
+    response = await client.delete(
+        f"/api/project-docs/{doc['id']}/versions/{second['id']}"
+    )
+
+    assert response.status_code == 204
+    versions = await client.get(f"/api/project-docs/{doc['id']}/versions")
+    numbers = [version["version_number"] for version in versions.json()]
+    assert numbers == [1]
+
+
+async def test_delete_last_remaining_version_returns_409(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The last version cannot be deleted (never zero versions, ADR 0011)."""
+    project_id = await seed_project(session)
+    doc = await create_doc(client, project_id)
+    only_version = doc["current_version"]
+
+    response = await client.delete(
+        f"/api/project-docs/{doc['id']}/versions/{only_version['id']}"
+    )
+
+    assert response.status_code == 409
+    versions = await client.get(f"/api/project-docs/{doc['id']}/versions")
+    assert len(versions.json()) == 1
+
+
+async def test_delete_version_scoped_to_parent_document(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Deleting a version under a document it does not belong to is a 404."""
+    project_id = await seed_project(session)
+    first_doc = await create_doc(client, project_id)
+    second_doc = await create_doc(client, project_id, label="E-102")
+    version = await add_version(client, first_doc["id"])
+
+    response = await client.delete(
+        f"/api/project-docs/{second_doc['id']}/versions/{version['id']}"
+    )
+
+    assert response.status_code == 404
+    versions = await client.get(f"/api/project-docs/{first_doc['id']}/versions")
+    assert len(versions.json()) == 2
