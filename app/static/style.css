@@ -258,6 +258,13 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer;
 }
 .btn-ghost:hover { border-color: var(--accent-line); color: var(--text); }
+/* Grayed out with no hover/pointer affordance (e.g. Edit while viewing an old
+   document version); pointer-events also suppresses the hover restyle. */
+.btn-ghost:disabled {
+  color: var(--muted);
+  border-color: var(--ghost-line);
+  pointer-events: none;
+}
 
 /* ---------------------------------------------------------------- typography helpers */
 
@@ -328,6 +335,9 @@ a { color: inherit; text-decoration: none; }
   gap: 12px;
   margin: 18px 0 4px;
 }
+
+/* The destructive document action sits apart from the constructive ones. */
+.doc-action-delete { margin-left: auto; }
 
 .doc-pill {
   display: inline-flex;
