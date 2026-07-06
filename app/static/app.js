@@ -496,6 +496,14 @@ function switch_doc_version(entry) {
     open_link.href = `${entry.dataset.fileUrl}?download=1`;
   }
 
+  // Editing metadata only makes sense against the current version, so Edit is
+  // grayed out while an older version is on screen. A disabled button fires no
+  // click, so the modal-open delegation needs no extra guard.
+  const edit_button = document.querySelector("[data-doc-edit]");
+  if (edit_button) {
+    edit_button.disabled = !is_current;
+  }
+
   // The current entry keeps its static CURRENT tag; older entries reveal their
   // VIEWING tag only while their pane is on screen.
   for (const timeline_entry of document.querySelectorAll("[data-doc-version]")) {
