@@ -530,6 +530,16 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  // Any row carrying data-row-href navigates as a whole; inner links and
+  // buttons keep their own behavior, so only bare-row clicks fall through.
+  const link_row = event.target.closest("[data-row-href]");
+  if (link_row) {
+    if (!event.target.closest("a, button")) {
+      window.location.href = link_row.dataset.rowHref;
+    }
+    return;
+  }
+
   // The whole VDI row is a link; while armed it deletes instead of navigating.
   const vdi_row = event.target.closest("[data-vdi-row]");
   if (vdi_row) {

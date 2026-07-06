@@ -48,9 +48,9 @@
   </thead>
   <tbody>
     {% for doc in project_docs %}
-    <tr class="vdi-row" data-href="/project-docs/{{ doc.id }}">
+    <tr class="vdi-row" data-row-href="/project-docs/{{ doc.id }}">
       <td class="col-name">
-        <a class="vdi-row-link" href="/project-docs/{{ doc.id }}">{{ doc.label }}</a>
+        <span class="vdi-row-link">{{ doc.label }}</span>
       </td>
       <td class="col-type">{{ type_chip(doc.type) }}</td>
       <td class="col-version">

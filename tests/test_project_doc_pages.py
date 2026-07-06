@@ -66,7 +66,23 @@ async def test_documents_list_shows_label_chip_version_and_date(
     assert ">special_condition<" not in body
     assert "Version 2" in body
     assert doc.updated_at.strftime("%Y-%m-%d") in body
-    assert f'href="/project-docs/{doc.id}"' in body
+    assert f'data-row-href="/project-docs/{doc.id}"' in body
+
+
+async def test_documents_list_row_is_the_click_target(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The row carries the detail URL and the label is a span, not an anchor."""
+    project = await seed_project(session)
+    doc = await add_doc(session, project, label="E-101")
+    await session.commit()
+
+    response = await client.get(f"/projects/{project.id}/documents")
+
+    body = response.text
+    assert f'data-row-href="/project-docs/{doc.id}"' in body
+    assert '<span class="vdi-row-link">E-101</span>' in body
+    assert f'<a class="vdi-row-link" href="/project-docs/{doc.id}"' not in body
 
 
 async def test_documents_list_scoped_to_project(
