@@ -1142,6 +1142,36 @@ a { color: inherit; text-decoration: none; }
   color: var(--faint);
 }
 
+/* Document version timeline — no lifecycle status, so the VDI red→green spine
+   and status-family nodes flatten to a neutral color in both themes; only the
+   viewed entry's node paints accent. Entries are buttons (in-place pane swap,
+   not navigation), so the button chrome is stripped back to the entry style. */
+.timeline--doc { --k: var(--faint); }
+.timeline--doc::before {
+  background: var(--line-3);
+  opacity: 1;
+}
+.timeline--doc .timeline-entry {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.timeline--doc .timeline-node.is-current {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.timeline-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 /* ---------------------------------------------------------------- project detail */
 
 .project-detail-header {
@@ -1388,27 +1418,3 @@ a { color: inherit; text-decoration: none; }
 }
 
 .doc-type-line { margin: 10px 0 0; }
-
-.doc-version-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.doc-version-row {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 14px 4px;
-  border-bottom: 1px solid var(--hair);
-}
-
-.doc-version-main {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-right: auto;
-}
-
-.doc-version-name { color: var(--text); font-weight: 500; }
-.doc-version-desc { color: var(--muted); font-size: 13px; }

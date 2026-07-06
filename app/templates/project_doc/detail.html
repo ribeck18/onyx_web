@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% from "macros/badge.html" import type_chip %}
+{% from "macros/preview.html" import file_pane %}
+
+{% set current_version = doc.current_version %}
 
 {% block title %}{{ doc.label }} · Onyx{% endblock %}
 
@@ -29,24 +32,54 @@
 
 <div class="gradient-rule"></div>
 
-<section class="section-header">
-  <p class="section-label">VERSION HISTORY</p>
-</section>
-
-<ul class="doc-version-list">
-  {% for version in doc_versions | reverse %}
-  <li class="doc-version-row">
-    <div class="doc-version-main">
-      {# The display name is composed from the current label, never stored, so
-         renaming the document renames every version. #}
-      <span class="doc-version-name">{{ doc.label }} Version {{ version.version_number }}</span>
-      {% if version.description %}
-      <span class="doc-version-desc">{{ version.description }}</span>
-      {% endif %}
+<section class="vdi-columns">
+  <div class="vdi-col-left">
+    <div class="preview" data-doc-preview>
+      <div class="preview-head">
+        <span class="preview-title" data-preview-title>CURRENT VERSION</span>
+        <span class="preview-filename" data-preview-filename>{{ current_version.file.original_name }}</span>
+        <a class="preview-open" data-preview-open href="/api/files/{{ current_version.file.id }}?download=1">DOWNLOAD</a>
+      </div>
+      {# Every version's pane is pre-rendered so a timeline click swaps panes
+         in place without a round trip; only the viewed one is visible. #}
+      {% for version in doc_versions %}
+      <div class="preview-pane" data-doc-pane="{{ version.id }}"{% if version.id != current_version.id %} hidden{% endif %}>
+        {{ file_pane(version.file) }}
+      </div>
+      {% endfor %}
     </div>
-    <span class="cell-value">{{ version.created_at.strftime("%Y-%m-%d") }}</span>
-    <a class="btn-ghost" href="/api/files/{{ version.file_id }}" download>Download</a>
-  </li>
-  {% endfor %}
-</ul>
+  </div>
+
+  <div class="vdi-col-right">
+    <p class="section-label">VERSION HISTORY</p>
+    <div class="timeline timeline--doc">
+      {# The service returns versions oldest-first; the timeline reads newest-first. #}
+      {% for version in doc_versions | reverse %}
+      {% set is_current_version = version.id == current_version.id %}
+      <button type="button"
+              class="timeline-entry"
+              data-doc-version="{{ version.id }}"
+              data-version-number="{{ version.version_number }}"
+              data-is-current="{{ 'true' if is_current_version else 'false' }}"
+              data-filename="{{ version.file.original_name }}"
+              data-file-url="/api/files/{{ version.file.id }}">
+        <span class="timeline-node{% if is_current_version %} is-current{% endif %}" aria-hidden="true"></span>
+        <div class="timeline-row">
+          <span class="timeline-rev">VERSION {{ version.version_number }}</span>
+          {% if is_current_version %}
+          <span class="timeline-current-tag">CURRENT</span>
+          {% else %}
+          {# Hidden until this older version is being viewed in the pane. #}
+          <span class="timeline-current-tag" data-doc-viewing hidden>VIEWING</span>
+          {% endif %}
+        </div>
+        {% if version.description %}
+        <p class="timeline-desc">{{ version.description }}</p>
+        {% endif %}
+        <p class="timeline-dates">ADDED {{ version.created_at.strftime("%Y-%m-%d") }}</p>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+</section>
 {% endblock %}

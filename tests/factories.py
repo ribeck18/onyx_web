@@ -103,9 +103,11 @@ def make_project_doc(
 def make_doc_version(
     version_number: int = 1,
     file: File | None = None,
+    description: str | None = None,
 ) -> DocVersion:
     """Build an unsaved DocVersion; the File cascade-saves via the relationship."""
     return DocVersion(
         version_number=version_number,
         file=file if file is not None else make_file(),
+        description=description,
     )

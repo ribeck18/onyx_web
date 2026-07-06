@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.project import Project
 from app.models.project_doc import ProjectDoc
 from app.project_doc.document_type import DocumentType
-from tests.factories import make_doc_version, make_project, make_project_doc
+from tests.factories import (
+    make_doc_version,
+    make_file,
+    make_project,
+    make_project_doc,
+)
 
 
 async def seed_project(session: AsyncSession, **kwargs: str) -> Project:
@@ -120,30 +125,130 @@ async def test_detail_unknown_document_returns_404(client: AsyncClient) -> None:
     assert response.status_code == 404
 
 
-async def test_detail_lists_version_history_with_downloads(
+async def test_detail_renders_one_pane_per_version_only_current_visible(
     client: AsyncClient, session: AsyncSession
 ) -> None:
-    """The detail page names each version from the current label and links its
-    file for download."""
+    """Every version is pre-rendered as a preview pane; only the current
+    (highest-numbered) version's pane is visible on load."""
     project = await seed_project(session, project_number="26-131")
-    doc = await add_doc(session, project, label="E-101", version_count=2)
+    doc = await add_doc(session, project, label="E-101", version_count=3)
     await session.commit()
 
     response = await client.get(f"/project-docs/{doc.id}")
 
     assert response.status_code == 200
     body = response.text
-    assert "E-101 Version 1" in body
-    assert "E-101 Version 2" in body
+    assert body.count("data-doc-pane=") == 3
+    current = doc.current_version
+    assert f'data-doc-pane="{current.id}">' in body
     for version in doc.versions:
-        assert f'href="/api/files/{version.file_id}"' in body
+        if version.id == current.id:
+            continue
+        assert f'data-doc-pane="{version.id}" hidden>' in body
+        # Panes are rendered inline (PDF iframes here), not links away.
+        assert f'src="/api/files/{version.file_id}"' in body
 
 
-async def test_detail_version_names_follow_a_renamed_label(
+async def test_detail_header_shows_current_filename_and_download(
     client: AsyncClient, session: AsyncSession
 ) -> None:
-    """Display names are composed from the current label, so a rename shows on
-    every version — including those recorded before the rename."""
+    """The preview header carries the current version's filename and a
+    DOWNLOAD link to that file."""
+    project = await seed_project(session, project_number="26-131")
+    doc = make_project_doc(project, label="E-101", with_first_version=False)
+    doc.versions.append(
+        make_doc_version(version_number=1, file=make_file(original_name="plan_v1.pdf"))
+    )
+    doc.versions.append(
+        make_doc_version(version_number=2, file=make_file(original_name="plan_v2.pdf"))
+    )
+    session.add(doc)
+    await session.flush()
+    await session.commit()
+
+    response = await client.get(f"/project-docs/{doc.id}")
+
+    body = response.text
+    assert "CURRENT VERSION" in body
+    assert 'data-preview-filename>plan_v2.pdf<' in body
+    current = doc.current_version
+    assert f'href="/api/files/{current.file_id}?download=1">DOWNLOAD</a>' in body
+
+
+async def test_detail_timeline_newest_first_with_descriptions_and_dates(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The timeline lists versions newest-first, each with its description
+    (when present) and added date."""
+    project = await seed_project(session, project_number="26-131")
+    doc = make_project_doc(project, label="E-101", with_first_version=False)
+    doc.versions.append(
+        make_doc_version(version_number=1, description="Issued for review")
+    )
+    doc.versions.append(
+        make_doc_version(version_number=2, description="Issued for construction")
+    )
+    session.add(doc)
+    await session.flush()
+    await session.commit()
+
+    response = await client.get(f"/project-docs/{doc.id}")
+
+    body = response.text
+    newest_position = body.index('<span class="timeline-rev">VERSION 2</span>')
+    oldest_position = body.index('<span class="timeline-rev">VERSION 1</span>')
+    assert newest_position < oldest_position
+    assert 'class="timeline-desc">Issued for review<' in body
+    assert 'class="timeline-desc">Issued for construction<' in body
+    for version in doc.versions:
+        assert f"ADDED {version.created_at.strftime('%Y-%m-%d')}" in body
+
+
+async def test_detail_newest_entry_marked_current(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The newest timeline entry is tagged CURRENT with the accent node; older
+    entries carry a hidden VIEWING tag for the in-place pane swap."""
+    project = await seed_project(session, project_number="26-131")
+    doc = await add_doc(session, project, label="E-101", version_count=2)
+    await session.commit()
+
+    response = await client.get(f"/project-docs/{doc.id}")
+
+    body = response.text
+    assert body.count(">CURRENT</span>") == 1
+    assert body.count('class="timeline-node is-current"') == 1
+    current = doc.current_version
+    assert f'data-doc-version="{current.id}"' in body
+    assert 'data-is-current="true"' in body
+    assert "data-doc-viewing hidden>VIEWING</span>" in body
+
+
+async def test_detail_breadcrumbs_link_home_project_and_documents(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Breadcrumbs run Home / project / Documents / this document."""
+    project = await seed_project(session, project_number="26-131")
+    doc = await add_doc(session, project, label="E-101")
+    await session.commit()
+
+    response = await client.get(f"/project-docs/{doc.id}")
+
+    body = response.text
+    assert '<a class="crumb-link" href="/">HOME</a>' in body
+    assert f'<a class="crumb-link" href="/projects/{project.id}">26-131</a>' in body
+    assert (
+        f'<a class="crumb-link" href="/projects/{project.id}/documents">DOCUMENTS</a>'
+        in body
+    )
+    assert '<span class="crumb-current">E-101</span>' in body
+
+
+async def test_detail_heading_follows_a_renamed_label(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The page heading and breadcrumb read the current label, so a rename is
+    reflected everywhere the document is named."""
     project = await seed_project(session, project_number="26-131")
     doc = await add_doc(session, project, label="E-101", version_count=2)
     await session.commit()
@@ -156,9 +261,8 @@ async def test_detail_version_names_follow_a_renamed_label(
     response = await client.get(f"/project-docs/{doc.id}")
 
     body = response.text
-    assert "E-102 Version 1" in body
-    assert "E-102 Version 2" in body
-    assert "E-101 Version" not in body
+    assert "E-102" in body
+    assert "E-101" not in body
 
 
 async def test_detail_shows_type_chip_not_raw_enum(
