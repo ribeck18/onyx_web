@@ -20,7 +20,6 @@
     {% endif %}
   </div>
   <div class="header-actions">
-    <a class="btn-ghost" href="/projects/{{ project.id }}/documents">Documents ({{ document_count }})</a>
     <button type="button"
           class="btn-ghost"
           data-modal-open="project-modal"
@@ -34,6 +33,13 @@
 </section>
 
 <div class="gradient-rule"></div>
+
+<div class="doc-actions">
+  <a class="doc-pill" href="/projects/{{ project.id }}/documents">
+    Documents
+    <span class="doc-pill-count">{{ document_count }}</span>
+  </a>
+</div>
 
 <section class="section-header">
   <p class="section-label">VENDOR DATA ITEMS</p>

@@ -62,7 +62,8 @@ async def test_documents_list_shows_label_chip_version_and_date(
     body = response.text
     assert "SC-01" in body
     assert "Special Condition" in body  # human chip label, never the raw enum
-    assert "special_condition" not in body
+    # The raw enum may appear only as an option value in the create modal.
+    assert ">special_condition<" not in body
     assert "Version 2" in body
     assert doc.updated_at.strftime("%Y-%m-%d") in body
     assert f'href="/project-docs/{doc.id}"' in body
@@ -162,10 +163,11 @@ async def test_detail_shows_type_chip_not_raw_enum(
     assert 'class="type-chip fam-' in body
 
 
-async def test_project_detail_documents_button_shows_count(
+async def test_project_detail_documents_chip_shows_count(
     client: AsyncClient, session: AsyncSession
 ) -> None:
-    """The project page links to the documents list with the total count."""
+    """The actions row below the divider carries a chip linking to the
+    documents list with the total count."""
     project = await seed_project(session, project_number="26-131")
     await add_doc(session, project, label="E-101")
     await add_doc(session, project, label="SPEC-1")
@@ -174,17 +176,36 @@ async def test_project_detail_documents_button_shows_count(
     response = await client.get(f"/projects/{project.id}")
 
     body = response.text
-    assert f'href="/projects/{project.id}/documents"' in body
-    assert "Documents (2)" in body
+    assert 'class="doc-actions"' in body
+    assert f'class="doc-pill" href="/projects/{project.id}/documents"' in body
+    assert 'class="doc-pill-count">2<' in body
 
 
-async def test_project_detail_documents_button_zero_count(
+async def test_project_detail_documents_chip_zero_count(
     client: AsyncClient, session: AsyncSession
 ) -> None:
-    """With no documents the button still renders, counting zero."""
+    """With no documents the chip still renders, counting zero."""
     project = await seed_project(session)
     await session.commit()
 
     response = await client.get(f"/projects/{project.id}")
 
-    assert "Documents (0)" in response.text
+    assert 'class="doc-pill-count">0<' in response.text
+
+
+async def test_project_detail_documents_link_not_in_header_actions(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The header actions no longer link to documents; the chip below the
+    divider is the only entry point."""
+    project = await seed_project(session, project_number="26-131")
+    await session.commit()
+
+    response = await client.get(f"/projects/{project.id}")
+
+    body = response.text
+    # The chip is the sole documents link on the page.
+    assert body.count(f'href="/projects/{project.id}/documents"') == 1
+    assert "Documents (" not in body
+    # Edit stays in the header actions.
+    assert 'data-modal-open="project-modal"' in body
