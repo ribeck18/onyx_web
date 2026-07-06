@@ -1,6 +1,6 @@
 # Onyx
 
-Onyx keeps track of vendor data on construction projects. When a fabricator or contractor wins a job, they owe the buyer a pile of documentation — drawings, procedures, test reports — and every one of those documents has to be submitted, reviewed, and (eventually) approved. Onyx is a place to track all of that.
+Onyx keeps track of vendor data on construction projects. When a contractor wins a job, they owe the buyer a pile of documentation — drawings, procedures, test reports — and every one of those documents has to be submitted, reviewed, and (eventually) approved. Onyx is a place to track all of that.
 
 ## Who it's for
 
