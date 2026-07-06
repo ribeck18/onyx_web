@@ -283,6 +283,44 @@ async def test_detail_shows_type_chip_not_raw_enum(
     assert 'class="type-chip fam-' in body
 
 
+async def test_detail_actions_row_has_add_version_button(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A full-width actions row above the columns carries an Add Version
+    primary button wired to the add-version endpoint."""
+    project = await seed_project(session, project_number="26-131")
+    doc = await add_doc(session, project, label="E-101", version_count=2)
+    await session.commit()
+
+    response = await client.get(f"/project-docs/{doc.id}")
+
+    body = response.text
+    assert 'class="doc-actions"' in body
+    # The actions row sits above the two-column layout.
+    assert body.index('class="doc-actions"') < body.index('class="vdi-columns"')
+    assert 'data-modal-open="version-modal"' in body
+    assert f'data-url="/api/project-docs/{doc.id}/versions"' in body
+    assert 'data-method="POST"' in body
+
+
+async def test_detail_add_version_modal_fields(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The Add Version modal is multipart with a required file input and an
+    optional description."""
+    project = await seed_project(session)
+    doc = await add_doc(session, project)
+    await session.commit()
+
+    response = await client.get(f"/project-docs/{doc.id}")
+
+    body = response.text
+    assert 'data-modal="version-modal"' in body
+    assert 'data-encoding="multipart"' in body
+    assert '<input type="file" name="file" class="field-file" required>' in body
+    assert '<textarea name="description"' in body
+
+
 async def test_project_detail_documents_chip_shows_count(
     client: AsyncClient, session: AsyncSession
 ) -> None:

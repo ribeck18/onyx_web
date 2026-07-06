@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "macros/badge.html" import type_chip %}
 {% from "macros/preview.html" import file_pane %}
+{% from "macros/modal.html" import form_modal %}
 
 {% set current_version = doc.current_version %}
 
@@ -31,6 +32,18 @@
 </section>
 
 <div class="gradient-rule"></div>
+
+{# Document-scoped actions; later controls (edit, delete) slot in here. #}
+<div class="doc-actions">
+  <button type="button"
+          class="btn-primary"
+          data-modal-open="version-modal"
+          data-mode="create"
+          data-title="Add Version"
+          data-submit-label="Add Version"
+          data-method="POST"
+          data-url="/api/project-docs/{{ doc.id }}/versions">+ Add Version</button>
+</div>
 
 <section class="vdi-columns">
   <div class="vdi-col-left">
@@ -82,4 +95,17 @@
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block modals %}
+{% call form_modal("version-modal", "Add Version", "Add Version", "A file is required.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Version File <span class="req">*</span></span>
+    <input type="file" name="file" class="field-file" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea name="description" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
 {% endblock %}
