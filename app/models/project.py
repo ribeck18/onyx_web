@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 if TYPE_CHECKING:
+    from app.models.project_doc import ProjectDoc
     from app.models.vdi import VendorDataItem
 
 
@@ -34,6 +35,11 @@ class Project(Base):
 
     vendor_data_items: Mapped[list["VendorDataItem"]] = relationship(
         "VendorDataItem",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+    project_docs: Mapped[list["ProjectDoc"]] = relationship(
+        "ProjectDoc",
         back_populates="project",
         cascade="all, delete-orphan",
     )

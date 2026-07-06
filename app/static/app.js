@@ -464,6 +464,53 @@ function switch_preview_tab(tab) {
   }
 }
 
+// --------------------------------------------------- document version panes
+
+// Every version of a Project Document is pre-rendered as a hidden preview pane;
+// clicking a timeline entry swaps the visible pane in place (no navigation).
+// The header title, filename, and DOWNLOAD link follow the viewed version, and
+// the accent node plus the VIEWING tag move to the clicked entry.
+function switch_doc_version(entry) {
+  const preview = document.querySelector("[data-doc-preview]");
+  if (!preview) {
+    return;
+  }
+  const version_id = entry.dataset.docVersion;
+  for (const pane of preview.querySelectorAll("[data-doc-pane]")) {
+    pane.hidden = pane.dataset.docPane !== version_id;
+  }
+
+  const is_current = entry.dataset.isCurrent === "true";
+  const title = preview.querySelector("[data-preview-title]");
+  if (title) {
+    title.textContent = is_current
+      ? "CURRENT VERSION"
+      : `VERSION ${entry.dataset.versionNumber}`;
+  }
+  const filename = preview.querySelector("[data-preview-filename]");
+  if (filename) {
+    filename.textContent = entry.dataset.filename;
+  }
+  const open_link = preview.querySelector("[data-preview-open]");
+  if (open_link) {
+    open_link.href = `${entry.dataset.fileUrl}?download=1`;
+  }
+
+  // The current entry keeps its static CURRENT tag; older entries reveal their
+  // VIEWING tag only while their pane is on screen.
+  for (const timeline_entry of document.querySelectorAll("[data-doc-version]")) {
+    const is_viewed = timeline_entry === entry;
+    const node = timeline_entry.querySelector(".timeline-node");
+    if (node) {
+      node.classList.toggle("is-current", is_viewed);
+    }
+    const viewing_tag = timeline_entry.querySelector("[data-doc-viewing]");
+    if (viewing_tag) {
+      viewing_tag.hidden = !is_viewed;
+    }
+  }
+}
+
 // --------------------------------------------------------- event delegation
 
 document.addEventListener("click", (event) => {
@@ -510,6 +557,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const doc_version_entry = event.target.closest("[data-doc-version]");
+  if (doc_version_entry) {
+    switch_doc_version(doc_version_entry);
+    return;
+  }
+
   const notes_save = event.target.closest("[data-notes-save]");
   if (notes_save) {
     save_notes(notes_save);
@@ -527,6 +580,16 @@ document.addEventListener("click", (event) => {
   if (card && card.closest(".is-deleting")) {
     event.preventDefault();
     delete_project(card);
+    return;
+  }
+
+  // Any row carrying data-row-href navigates as a whole; inner links and
+  // buttons keep their own behavior, so only bare-row clicks fall through.
+  const link_row = event.target.closest("[data-row-href]");
+  if (link_row) {
+    if (!event.target.closest("a, button")) {
+      window.location.href = link_row.dataset.rowHref;
+    }
     return;
   }
 

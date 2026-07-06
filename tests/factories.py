@@ -6,10 +6,13 @@ from datetime import datetime, timezone
 
 from starlette.datastructures import Headers, UploadFile
 
+from app.models.doc_version import DocVersion
 from app.models.file import File
 from app.models.project import Project
+from app.models.project_doc import ProjectDoc
 from app.models.revision import Revision
 from app.models.vdi import VendorDataItem
+from app.project_doc.document_type import DocumentType
 from app.vdi.approval_type import ApprovalType
 from app.vdi.submit_code import SubmitCode
 
@@ -76,4 +79,35 @@ def make_revision(
         revision_number=revision_number,
         submit_file=submit_file if submit_file is not None else make_file(),
         submitted_at=datetime.now(timezone.utc),
+    )
+
+
+def make_project_doc(
+    project: Project,
+    label: str = "E-101",
+    document_type: DocumentType = DocumentType.DRAWING,
+    with_first_version: bool = True,
+) -> ProjectDoc:
+    """Build an unsaved ProjectDoc attached to the given project.
+
+    Version 1 is attached by default since a ProjectDoc never legitimately
+    exists with zero versions (ADR 0011); pass with_first_version=False only
+    to exercise invalid states.
+    """
+    project_doc = ProjectDoc(project=project, label=label, type=document_type)
+    if with_first_version:
+        project_doc.versions.append(make_doc_version())
+    return project_doc
+
+
+def make_doc_version(
+    version_number: int = 1,
+    file: File | None = None,
+    description: str | None = None,
+) -> DocVersion:
+    """Build an unsaved DocVersion; the File cascade-saves via the relationship."""
+    return DocVersion(
+        version_number=version_number,
+        file=file if file is not None else make_file(),
+        description=description,
     )

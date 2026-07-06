@@ -32,6 +32,8 @@ templates.env.filters["status_hero_word"] = labels.status_hero_word
 templates.env.filters["approval_type_label"] = labels.approval_type_label
 templates.env.filters["submit_code_label"] = labels.submit_code_label
 templates.env.filters["submit_code_short"] = labels.submit_code_short
+templates.env.filters["document_type_label"] = labels.document_type_label
+templates.env.filters["document_type_family"] = labels.document_type_family
 templates.env.filters["preview_kind"] = file_preview.preview_kind
 templates.env.filters["file_extension"] = file_preview.file_extension
 
@@ -39,6 +41,7 @@ templates.env.filters["file_extension"] = file_preview.file_extension
 # labels are never duplicated in JS). Keyed by enum member, valued by human label.
 templates.env.globals["approval_type_options"] = labels.APPROVAL_TYPE_LABELS
 templates.env.globals["submit_code_options"] = labels.SUBMIT_CODE_LABELS
+templates.env.globals["document_type_options"] = labels.DOCUMENT_TYPE_LABELS
 
 
 def resolve_theme(request: Request) -> str:

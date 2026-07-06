@@ -19,7 +19,8 @@
     <p class="detail-description">{{ project.description }}</p>
     {% endif %}
   </div>
-  <button type="button"
+  <div class="header-actions">
+    <button type="button"
           class="btn-ghost"
           data-modal-open="project-modal"
           data-mode="edit"
@@ -28,9 +29,17 @@
           data-method="PATCH"
           data-url="/api/projects/{{ project.id }}"
           data-prefill='{{ {"project_number": project.project_number, "name": project.name, "description": project.description} | tojson }}'>Edit</button>
+  </div>
 </section>
 
 <div class="gradient-rule"></div>
+
+<div class="doc-actions">
+  <a class="doc-pill" href="/projects/{{ project.id }}/documents">
+    Documents
+    <span class="doc-pill-count">{{ document_count }}</span>
+  </a>
+</div>
 
 <section class="section-header">
   <p class="section-label">VENDOR DATA ITEMS</p>

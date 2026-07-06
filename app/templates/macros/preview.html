@@ -1,0 +1,22 @@
+{#
+  Render the content-type-driven preview body for one file: PDF iframe, inline
+  image, or a download fallback. Shared by the VDI detail preview panes and the
+  Project Document version panes.
+#}
+{% macro file_pane(file) %}
+  {% set kind = file.content_type | preview_kind %}
+  {% if kind == "pdf" %}
+    <iframe class="preview-pdf" src="/api/files/{{ file.id }}" title="{{ file.original_name }}"></iframe>
+  {% elif kind == "image" %}
+    <div class="preview-image-box">
+      <img class="preview-image" src="/api/files/{{ file.id }}" alt="{{ file.original_name }}">
+    </div>
+  {% else %}
+    <div class="preview-download">
+      <span class="preview-ext">{{ file.original_name | file_extension }}</span>
+      <span class="preview-download-name">{{ file.original_name }}</span>
+      <span class="preview-download-note">CANNOT PREVIEW INLINE</span>
+      <a class="btn-primary" href="/api/files/{{ file.id }}?download=1">Download file</a>
+    </div>
+  {% endif %}
+{% endmacro %}
