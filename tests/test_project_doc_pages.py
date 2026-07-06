@@ -345,6 +345,31 @@ async def test_detail_actions_row_has_edit_button_enabled(
     assert 'class="btn-ghost"' in body[button_open:edit_start]
 
 
+async def test_detail_actions_row_has_delete_button(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The actions row carries a right-aligned destructive Delete button that
+    confirms (warning all versions are removed), deletes the document, and
+    redirects to the project's documents list."""
+    project = await seed_project(session, project_number="26-131")
+    doc = await add_doc(session, project, label="E-101", version_count=2)
+    await session.commit()
+
+    response = await client.get(f"/project-docs/{doc.id}")
+
+    body = response.text
+    delete_start = body.index('class="btn-ghost btn-row-danger doc-action-delete"')
+    delete_button = body[delete_start : body.index(">Delete</button>", delete_start)]
+    assert "data-user-action" in delete_button
+    assert 'data-method="DELETE"' in delete_button
+    assert f'data-url="/api/project-docs/{doc.id}"' in delete_button
+    assert f'data-redirect="/projects/{project.id}/documents"' in delete_button
+    assert (
+        'data-confirm="Delete E-101? This removes the document '
+        'and all of its versions."'
+    ) in delete_button
+
+
 async def test_detail_edit_modal_prefilled_with_current_values(
     client: AsyncClient, session: AsyncSession
 ) -> None:

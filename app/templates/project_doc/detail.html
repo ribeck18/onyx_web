@@ -54,6 +54,15 @@
           data-submit-label="Save Changes"
           data-method="PATCH"
           data-url="/api/project-docs/{{ doc.id }}">Edit</button>
+  {# Deleting the document removes every version, so the destructive action
+     sits apart on the right and always targets the document itself. #}
+  <button type="button"
+          class="btn-ghost btn-row-danger doc-action-delete"
+          data-user-action
+          data-method="DELETE"
+          data-url="/api/project-docs/{{ doc.id }}"
+          data-redirect="/projects/{{ project.id }}/documents"
+          data-confirm="Delete {{ doc.label }}? This removes the document and all of its versions.">Delete</button>
 </div>
 
 <section class="vdi-columns">

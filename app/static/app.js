@@ -390,7 +390,8 @@ async function delete_vdi_row(row) {
 
 // The admin users screen mutates with one-shot row buttons (deactivate, promote,
 // delete, …) rather than a modal. Each carries its own method + URL and an
-// optional confirm prompt; a 2xx reloads, anything else surfaces the reason.
+// optional confirm prompt; a 2xx reloads (or follows data-redirect when the
+// page itself is being deleted), anything else surfaces the reason.
 async function handle_user_action(button) {
   const confirm_message = button.dataset.confirm;
   if (confirm_message && !window.confirm(confirm_message)) {
@@ -398,7 +399,11 @@ async function handle_user_action(button) {
   }
   const response = await fetch(button.dataset.url, { method: button.dataset.method });
   if (response.ok) {
-    location.reload();
+    if (button.dataset.redirect) {
+      location.assign(button.dataset.redirect);
+    } else {
+      location.reload();
+    }
     return;
   }
   window.alert(await error_message_from(response));

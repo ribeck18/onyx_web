@@ -336,6 +336,9 @@ a { color: inherit; text-decoration: none; }
   margin: 18px 0 4px;
 }
 
+/* The destructive document action sits apart from the constructive ones. */
+.doc-action-delete { margin-left: auto; }
+
 .doc-pill {
   display: inline-flex;
   align-items: center;
