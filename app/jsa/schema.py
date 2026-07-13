@@ -13,6 +13,10 @@ class JsaNotesUpdate(BaseModel):
     notes: str | None = None
 
 
+class JsaDecision(BaseModel):
+    comments: str | None = None
+
+
 class JsaFileRead(BaseModel):
     id: int
     file_group: JsaFileGroup

@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.file import service as file_service
 from app.file.dependencies import get_storage_root
 from app.jsa import service
-from app.jsa.schema import JsaNotesUpdate, JsaRead
+from app.jsa.schema import JsaDecision, JsaNotesUpdate, JsaRead
+from app.jsa.status import JsaStatus
 from app.project import service as project_service
 
 router = APIRouter(prefix="/projects/{project_id}/jsa", tags=["jsa"])
@@ -66,6 +67,53 @@ async def read_jsa(
     jsa = await service.get_jsa(session, project_id)
     if jsa is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="JSA not found")
+    return JsaRead.model_validate(jsa)
+
+
+@router.post("/approve", response_model=JsaRead)
+async def approve_jsa(
+    project_id: int,
+    data: JsaDecision | None = None,
+    session: AsyncSession = Depends(get_session),
+) -> JsaRead:
+    """Approve the current submitted JSA package without return files."""
+    jsa = await service.get_jsa(session, project_id)
+    if jsa is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="JSA not found")
+    if jsa.status is not JsaStatus.SUBMITTED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="JSA can only be decided while submitted.",
+        )
+    await service.record_approval(session, jsa, data.comments if data else None)
+    await session.commit()
+    return JsaRead.model_validate(jsa)
+
+
+@router.post("/reject", response_model=JsaRead)
+async def reject_jsa(
+    project_id: int,
+    files: list[UploadFile] = File(...),
+    comments: str | None = Form(None),
+    session: AsyncSession = Depends(get_session),
+    storage_root: Path = Depends(get_storage_root),
+) -> JsaRead:
+    """Reject the current JSA with one to three buyer-marked-up files."""
+    jsa = await service.get_jsa(session, project_id)
+    if jsa is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="JSA not found")
+    if jsa.status is not JsaStatus.SUBMITTED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="JSA can only be decided while submitted.",
+        )
+    await _validate_package(files)
+    returned_files = [
+        await file_service.save_upload(session, uploaded_file, storage_root)
+        for uploaded_file in files
+    ]
+    await service.record_rejection(session, jsa, returned_files, comments)
+    await session.commit()
     return JsaRead.model_validate(jsa)
 
 

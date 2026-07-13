@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.models.jsa import JSA
 from app.models.jsa_file import JsaFile, JsaFileGroup
 from app.models.jsa_revision import JsaRevision
+from app.jsa.status import JsaStatus
 
 if TYPE_CHECKING:
     from app.models.file import File
@@ -48,6 +49,57 @@ async def create_jsa(
     session.add(jsa)
     await session.flush()
     return jsa
+
+
+async def record_approval(
+    session: AsyncSession,
+    jsa: JSA,
+    comments: str | None,
+) -> JsaRevision:
+    """Record approval of the current submitted revision and flush."""
+    return await _record_decision(session, jsa, JsaStatus.APPROVED, comments, [])
+
+
+async def record_rejection(
+    session: AsyncSession,
+    jsa: JSA,
+    returned_files: list[File],
+    comments: str | None,
+) -> JsaRevision:
+    """Record rejection and its buyer-marked-up package, then flush."""
+    return await _record_decision(
+        session,
+        jsa,
+        JsaStatus.REJECTED,
+        comments,
+        returned_files,
+    )
+
+
+async def _record_decision(
+    session: AsyncSession,
+    jsa: JSA,
+    decision: JsaStatus,
+    comments: str | None,
+    returned_files: list[File],
+) -> JsaRevision:
+    """Apply one buyer decision to the latest JSA Revision and flush."""
+    revision = jsa.revisions[-1]
+    revision.status = decision
+    revision.decided_at = datetime.now(timezone.utc)
+    revision.comments = comments
+    for position, stored_file in enumerate(returned_files):
+        revision.file_links.append(
+            JsaFile(
+                file=stored_file,
+                file_group=JsaFileGroup.RETURNED,
+                position=position,
+            )
+        )
+    jsa.status = decision
+    jsa.updated_at = datetime.now(timezone.utc)
+    await session.flush()
+    return revision
 
 
 async def update_notes(
