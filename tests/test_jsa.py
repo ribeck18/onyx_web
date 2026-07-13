@@ -162,6 +162,82 @@ async def test_reject_jsa_stores_returned_package_and_defaults_page_to_it(
     assert "RETURNED 1" in page.text
 
 
+async def test_revise_jsa_creates_next_submitted_revision_from_both_decisions(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Resolved JSAs accept one new package; Submitted JSAs do not."""
+    project = await seed_project(session)
+    await create_jsa(client, project.id)
+
+    assert (await client.post(f"/api/projects/{project.id}/jsa/approve")).status_code == 200
+    response = await client.post(
+        f"/api/projects/{project.id}/jsa/submit",
+        files={"files": ("scope-change.pdf", b"changed scope", "application/pdf")},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "submitted"
+    assert [revision["revision_number"] for revision in body["revisions"]] == [0, 1]
+    assert body["revisions"][0]["status"] == "approved"
+    assert body["revisions"][1]["status"] == "submitted"
+    assert (await client.post(f"/api/projects/{project.id}/jsa/submit")).status_code == 422
+    assert (
+        await client.post(
+            f"/api/projects/{project.id}/jsa/submit",
+            files={"files": ("another.pdf", b"another", "application/pdf")},
+        )
+    ).status_code == 409
+
+    assert (
+        await client.post(
+            f"/api/projects/{project.id}/jsa/reject",
+            files={"files": ("markup.pdf", b"markup", "application/pdf")},
+        )
+    ).status_code == 200
+    response = await client.post(
+        f"/api/projects/{project.id}/jsa/submit",
+        files={"files": ("corrected.pdf", b"corrected", "application/pdf")},
+    )
+    assert response.status_code == 200
+    assert [revision["revision_number"] for revision in response.json()["revisions"]] == [0, 1, 2]
+
+
+async def test_jsa_history_is_scoped_and_read_only_on_the_page(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Past JSA packages retain their decision context without live controls."""
+    project = await seed_project(session)
+    other_project = await seed_project(session, "P-002")
+    await create_jsa(client, project.id)
+    await create_jsa(client, other_project.id)
+    await client.post(
+        f"/api/projects/{project.id}/jsa/reject",
+        data={"comments": "Correct the lift plan."},
+        files={"files": ("markup.pdf", b"markup", "application/pdf")},
+    )
+    revised = await client.post(
+        f"/api/projects/{project.id}/jsa/submit",
+        files={"files": ("corrected.pdf", b"corrected", "application/pdf")},
+    )
+    old_revision_id = revised.json()["revisions"][0]["id"]
+
+    assert (await client.get(f"/api/projects/{project.id}/jsa/revisions")).status_code == 200
+    assert (
+        await client.get(f"/api/projects/{other_project.id}/jsa/revisions/{old_revision_id}")
+    ).status_code == 404
+    page = await client.get(f"/projects/{project.id}/jsa/revisions/{old_revision_id}")
+
+    assert page.status_code == 200
+    assert "VIEWING PAST REVISION" in page.text
+    assert "Correct the lift plan." in page.text
+    assert 'data-modal-open="approve-modal"' not in page.text
+    assert 'data-modal-open="revise-modal"' not in page.text
+    assert 'data-notes-url=' not in page.text
+    assert "READ-ONLY" in page.text
+    assert f'href="/projects/{project.id}/jsa/revisions/{old_revision_id}"' in page.text
+
+
 async def test_jsa_decisions_enforce_submitted_status_and_return_package_bounds(
     client: AsyncClient, session: AsyncSession
 ) -> None:
