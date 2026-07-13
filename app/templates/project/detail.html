@@ -39,6 +39,10 @@
     Documents
     <span class="doc-pill-count">{{ document_count }}</span>
   </a>
+  <a class="doc-pill" href="/projects/{{ project.id }}/jsa">
+    JSA
+    {% if jsa %}{{ jsa.status | status_label }}{% else %}NOT STARTED{% endif %}
+  </a>
 </div>
 
 <section class="section-header">

@@ -12,6 +12,8 @@ from app.auth.token_pages import router as token_pages_router
 from app.auth.token_router import router as token_router
 from app.auth.web_pages import router as auth_pages_router
 from app.file.router import router as file_router
+from app.jsa.router import router as jsa_router
+from app.jsa.web_pages import router as jsa_pages_router
 from app.project.router import router as project_router
 from app.project.web_pages import router as project_pages_router
 from app.project_doc.router import router as project_doc_router
@@ -49,6 +51,7 @@ app.include_router(project_doc_router, prefix="/api")
 app.include_router(vdi_router, prefix="/api")
 app.include_router(revision_router, prefix="/api")
 app.include_router(file_router, prefix="/api")
+app.include_router(jsa_router, prefix="/api")
 
 # HTML page routers are mounted at root (no /api prefix).
 app.include_router(auth_pages_router)
@@ -56,6 +59,7 @@ app.include_router(admin_pages_router)
 app.include_router(token_pages_router)
 app.include_router(project_pages_router)
 app.include_router(project_doc_pages_router)
+app.include_router(jsa_pages_router)
 app.include_router(vdi_pages_router)
 app.include_router(revision_pages_router)
 

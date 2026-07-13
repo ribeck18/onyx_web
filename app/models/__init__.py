@@ -6,6 +6,9 @@ from app.models.revision import Revision
 from app.models.project_doc import ProjectDoc
 from app.models.doc_version import DocVersion
 from app.models.file import File
+from app.models.jsa import JSA
+from app.models.jsa_file import JsaFile
+from app.models.jsa_revision import JsaRevision
 from app.models.user import User
 from app.models.session import Session
 from app.models.api_token import ApiToken
@@ -17,6 +20,9 @@ __all__ = [
     "ProjectDoc",
     "DocVersion",
     "File",
+    "JSA",
+    "JsaFile",
+    "JsaRevision",
     "User",
     "Session",
     "ApiToken",

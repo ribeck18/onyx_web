@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.project import service as project_service
+from app.jsa import service as jsa_service
 from app.project_doc import service as project_doc_service
 from app.vdi import service as vdi_service
 from app.vdi.service import OPEN_STATUSES
@@ -58,8 +59,14 @@ async def project_detail(
         )
     vdis = await vdi_service.get_vdis(session, project_id)
     document_count = await project_doc_service.count_project_docs(session, project_id)
+    jsa = await jsa_service.get_jsa(session, project_id)
     return render(
         request,
         "project/detail.html",
-        {"project": project, "vdis": vdis, "document_count": document_count},
+        {
+            "project": project,
+            "vdis": vdis,
+            "document_count": document_count,
+            "jsa": jsa,
+        },
     )

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% from "macros/badge.html" import status_badge %}
+{% from "macros/modal.html" import form_modal %}
+{% from "macros/preview.html" import file_pane %}
+
+{% block title %}JSA · {{ project.name }} · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}">{{ project.project_number }}</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">JSA</span>
+{% endblock %}
+
+{% block content %}
+<section class="vdi-hero">
+  <div class="vdi-hero-main">
+    <p class="eyebrow">PROJECT SAFETY</p>
+    <h1 class="h1-vdi">Job Safety Analysis</h1>
+  </div>
+  {% if jsa %}
+  <div class="vdi-hero-status">
+    <p class="eyebrow">STATUS</p>
+    <div class="hero-status fam-{{ jsa.status | status_family }}">
+      <span class="hero-dot" aria-hidden="true"></span>
+      <span class="hero-word">{{ jsa.status | status_hero_word }}</span>
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<div class="gradient-rule"></div>
+
+{% if jsa %}
+{% set revision = jsa.revisions[-1] %}
+<section class="vdi-columns">
+  <div class="vdi-col-left">
+    <div class="preview">
+      <div class="preview-head">
+        <span class="preview-title">CURRENT PACKAGE</span>
+        <div class="preview-tabs">
+          {% for link in revision.file_links if link.file_group.value == "submitted" %}
+          <button type="button"
+                  class="preview-tab{% if loop.first %} is-active{% endif %}"
+                  data-preview-tab="file-{{ link.id }}"
+                  data-filename="{{ link.file.original_name }}"
+                  data-file-url="/api/files/{{ link.file.id }}">FILE {{ loop.index }}</button>
+          {% endfor %}
+        </div>
+        {% for link in revision.file_links if link.file_group.value == "submitted" %}
+          {% if loop.first %}
+          <span class="preview-filename" data-preview-filename>{{ link.file.original_name }}</span>
+          <a class="preview-open" data-preview-open href="/api/files/{{ link.file.id }}?download=1">DOWNLOAD</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% for link in revision.file_links if link.file_group.value == "submitted" %}
+      <div class="preview-pane" data-preview-panel="file-{{ link.id }}"{% if not loop.first %} hidden{% endif %}>
+        {{ file_pane(link.file) }}
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="notes" data-notes data-notes-url="/api/projects/{{ project.id }}/jsa/notes">
+      <div class="notes-head">
+        <p class="section-label">NOTES</p>
+        <span class="notes-saved" data-notes-saved hidden>SAVED &#10003;</span>
+      </div>
+      <textarea class="notes-text" rows="4" data-notes-input>{{ jsa.notes or "" }}</textarea>
+      <button type="button" class="save-notes" data-notes-save disabled>Save notes</button>
+    </div>
+  </div>
+
+  <div class="vdi-col-right">
+    <p class="section-label">REVISION LOG</p>
+    <div class="timeline">
+      {% for revision in jsa.revisions %}
+      <div class="timeline-entry">
+        <span class="timeline-node fam-{{ revision.status | status_family }}{% if loop.last %} is-current{% endif %}" aria-hidden="true"></span>
+        <div class="timeline-row">
+          <span class="timeline-rev">REV {{ revision.revision_number }}</span>
+          {% if loop.last %}<span class="timeline-current-tag">CURRENT</span>{% endif %}
+          {{ status_badge(revision.status) }}
+        </div>
+        <p class="timeline-dates">SUB {{ revision.submitted_at.strftime("%Y-%m-%d") }} · AWAITING DECISION</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">No job safety analysis yet.</p>
+  <p class="empty-sub">Upload the first submitted package to begin approval tracking.</p>
+  <button type="button"
+          class="btn-primary"
+          data-modal-open="jsa-modal"
+          data-title="Create Job Safety Analysis"
+          data-submit-label="Create JSA"
+          data-method="POST"
+          data-url="/api/projects/{{ project.id }}/jsa">+ Create JSA</button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+{% if not jsa %}
+{% call form_modal("jsa-modal", "Create Job Safety Analysis", "Create JSA", "Upload one to three files.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Submitted Package <span class="req">*</span></span>
+    <input type="file" name="files" class="field-file" multiple required>
+  </label>
+  <p class="modal-helper">Upload one to three files. A competent-person roster is simply one package file.</p>
+{% endcall %}
+{% endif %}
+{% endblock %}
