@@ -172,6 +172,38 @@ async def reject_jsa(
     return JsaRead.model_validate(jsa)
 
 
+@router.delete("/revisions/{revision_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_revision(
+    project_id: int,
+    revision_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Delete only the newest JSA Revision and restore the prior live state."""
+    jsa = await service.get_jsa(session, project_id)
+    if jsa is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="JSA not found")
+    if jsa.revisions[-1].id != revision_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only the newest JSA Revision can be deleted.",
+        )
+    await service.delete_latest_revision(session, jsa)
+    await session.commit()
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_jsa(
+    project_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Delete a Project's JSA and all of its revision/link records."""
+    jsa = await service.get_jsa(session, project_id)
+    if jsa is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="JSA not found")
+    await service.delete_jsa(session, jsa)
+    await session.commit()
+
+
 @router.patch("/notes", response_model=JsaRead)
 async def patch_notes(
     project_id: int,

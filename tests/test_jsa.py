@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -102,6 +103,10 @@ async def test_project_and_jsa_pages_show_navigation_and_live_package(
     assert "Submitted" in live_page.text
     assert "jsa.pdf" in live_page.text
     assert f'data-notes-url="/api/projects/{project.id}/jsa/notes"' in live_page.text
+    assert f'data-url="/api/projects/{project.id}/jsa/revisions/' in live_page.text
+    assert f'data-url="/api/projects/{project.id}/jsa"' in live_page.text
+    assert "Delete the current JSA revision?" in live_page.text
+    assert "Delete this JSA and its full revision history?" in live_page.text
 
 
 async def test_approve_jsa_records_comments_and_decision_date(
@@ -236,6 +241,81 @@ async def test_jsa_history_is_scoped_and_read_only_on_the_page(
     assert 'data-notes-url=' not in page.text
     assert "READ-ONLY" in page.text
     assert f'href="/projects/{project.id}/jsa/revisions/{old_revision_id}"' in page.text
+
+
+@pytest.mark.parametrize("decision", ["submitted", "approved", "rejected"])
+async def test_delete_sole_current_revision_removes_jsa_and_keeps_file(
+    client: AsyncClient, session: AsyncSession, decision: str
+) -> None:
+    """Deleting revision zero removes the singleton in every lifecycle status."""
+    project = await seed_project(session)
+    created = await create_jsa(client, project.id)
+    file_id = created.json()["revisions"][0]["file_links"][0]["file"]["id"]
+    if decision == "approved":
+        await client.post(f"/api/projects/{project.id}/jsa/approve")
+    elif decision == "rejected":
+        await client.post(
+            f"/api/projects/{project.id}/jsa/reject",
+            files={"files": ("markup.pdf", b"markup", "application/pdf")},
+        )
+
+    revision_id = (await client.get(f"/api/projects/{project.id}/jsa")).json()["revisions"][-1]["id"]
+    response = await client.delete(f"/api/projects/{project.id}/jsa/revisions/{revision_id}")
+
+    assert response.status_code == 204
+    assert (await client.get(f"/api/projects/{project.id}/jsa")).status_code == 404
+    assert (await client.get(f"/api/files/{file_id}")).content == b"submitted JSA"
+    assert "No job safety analysis yet." in (await client.get(f"/projects/{project.id}/jsa")).text
+
+
+async def test_delete_current_revision_restores_previous_and_rejects_history(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """Only the newest revision can be deleted, restoring its predecessor."""
+    project = await seed_project(session)
+    await create_jsa(client, project.id)
+    await client.post(f"/api/projects/{project.id}/jsa/approve")
+    revised = await client.post(
+        f"/api/projects/{project.id}/jsa/submit",
+        files={"files": ("scope-change.pdf", b"changed scope", "application/pdf")},
+    )
+    old_revision_id = revised.json()["revisions"][0]["id"]
+    current_revision_id = revised.json()["revisions"][1]["id"]
+
+    assert (
+        await client.delete(f"/api/projects/{project.id}/jsa/revisions/{old_revision_id}")
+    ).status_code == 409
+    assert (
+        await client.delete(f"/api/projects/{project.id}/jsa/revisions/{current_revision_id}")
+    ).status_code == 204
+
+    restored = (await client.get(f"/api/projects/{project.id}/jsa")).json()
+    assert restored["status"] == "approved"
+    assert [revision["revision_number"] for revision in restored["revisions"]] == [0]
+    assert restored["revisions"][0]["status"] == "approved"
+
+
+@pytest.mark.parametrize("decision", ["submitted", "approved", "rejected"])
+async def test_delete_whole_jsa_removes_history_and_page_returns_to_project(
+    client: AsyncClient, session: AsyncSession, decision: str
+) -> None:
+    """Whole-JSA deletion is available in every status and retains stored files."""
+    project = await seed_project(session)
+    created = await create_jsa(client, project.id)
+    file_id = created.json()["revisions"][0]["file_links"][0]["file"]["id"]
+    if decision == "approved":
+        await client.post(f"/api/projects/{project.id}/jsa/approve")
+    elif decision == "rejected":
+        await client.post(
+            f"/api/projects/{project.id}/jsa/reject",
+            files={"files": ("markup.pdf", b"markup", "application/pdf")},
+        )
+
+    assert (await client.delete(f"/api/projects/{project.id}/jsa")).status_code == 204
+    assert (await client.get(f"/api/projects/{project.id}/jsa")).status_code == 404
+    assert (await client.get(f"/api/files/{file_id}")).content == b"submitted JSA"
+    page = await client.get(f"/projects/{project.id}")
+    assert page.status_code == 200
 
 
 async def test_jsa_decisions_enforce_submitted_status_and_return_package_bounds(

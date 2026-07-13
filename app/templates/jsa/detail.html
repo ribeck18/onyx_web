@@ -69,6 +69,10 @@
   <button type="button" class="lifecycle-btn lifecycle-accent" data-modal-open="revise-modal" data-title="Revise Job Safety Analysis" data-submit-label="Submit Revision" data-method="POST" data-url="/api/projects/{{ project.id }}/jsa/submit">Revise</button>
   <p class="lifecycle-note">UPLOAD A NEW PACKAGE FOR THE CHANGED SCOPE.</p>
   {% endif %}
+  {% if not is_historical %}
+  <button type="button" class="lifecycle-btn lifecycle-bad" data-user-action data-method="DELETE" data-url="/api/projects/{{ project.id }}/jsa/revisions/{{ jsa.revisions[-1].id }}" data-confirm="Delete the current JSA revision? This cannot be undone." data-redirect="/projects/{{ project.id }}/jsa">Delete revision</button>
+  <button type="button" class="lifecycle-btn lifecycle-bad" data-user-action data-method="DELETE" data-url="/api/projects/{{ project.id }}/jsa" data-confirm="Delete this JSA and its full revision history? This cannot be undone." data-redirect="/projects/{{ project.id }}">Delete JSA</button>
+  {% endif %}
 </section>
 
 <div class="plain-rule"></div>

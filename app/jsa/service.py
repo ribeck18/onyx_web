@@ -124,6 +124,29 @@ async def _record_decision(
     return revision
 
 
+async def delete_latest_revision(session: AsyncSession, jsa: JSA) -> bool:
+    """Delete the newest revision and restore its predecessor's status.
+
+    Return whether deleting the sole revision also removed the JSA singleton.
+    """
+    if len(jsa.revisions) == 1:
+        await session.delete(jsa)
+        await session.flush()
+        return True
+
+    jsa.status = jsa.revisions[-2].status
+    jsa.updated_at = datetime.now(timezone.utc)
+    jsa.revisions.pop()
+    await session.flush()
+    return False
+
+
+async def delete_jsa(session: AsyncSession, jsa: JSA) -> None:
+    """Delete a JSA and its revision/link history, then flush."""
+    await session.delete(jsa)
+    await session.flush()
+
+
 async def update_notes(
     session: AsyncSession,
     jsa: JSA,
