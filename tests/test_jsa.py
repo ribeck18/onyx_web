@@ -183,6 +183,12 @@ async def test_jsa_decisions_enforce_submitted_status_and_return_package_bounds(
     await create_jsa(client, rejected_project.id)
     assert (
         await client.post(
+            f"/api/projects/{rejected_project.id}/jsa/approve",
+            files={"files": ("markup.pdf", b"markup", "application/pdf")},
+        )
+    ).status_code == 422
+    assert (
+        await client.post(
             f"/api/projects/{rejected_project.id}/jsa/reject",
             files={"files": ("empty.pdf", b"", "application/pdf")},
         )
