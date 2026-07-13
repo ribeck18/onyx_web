@@ -8,8 +8,17 @@ A construction job. The top-level container for all work. Identified by a unique
 ### Vendor Data Item (VDI)
 A single piece of required vendor documentation that belongs to a Project. Tracks its own lifecycle status from `NOT_STARTED` through approval. Has many Revisions.
 
-### Revision
-One round-trip with the buyer on a VDI — a submittal sent out and (optionally) a return received back. All history lives in Revisions; the VDI status always reflects the current state. A Revision always represents a real submittal; it is never a draft.
+### VDI Revision
+One round-trip with the buyer on a VDI — a submittal sent out and (optionally) a return received back. All history lives in VDI Revisions; the VDI status always reflects the current state. A VDI Revision always represents a real submittal; it is never a draft.
+_Avoid_: JSA revision
+
+### Job Safety Analysis (JSA)
+The single project-level safety analysis submitted for approval. It has a history of JSA Revisions; its current status is Submitted, Approved, or Rejected. A submitted package contains one to three files and may include a competent-person roster; Onyx does not track competent persons separately. Rejection retains one to three buyer-marked-up return files; approval applies to the submitted package. Internal notes belong to the JSA itself, rather than any revision.
+_Avoid_: safety document
+
+### JSA Revision
+One submitted JSA package and its approval decision. The submitted package and a rejection return each contain one to three files; approved revisions have no separate return files. Either decision may carry buyer comments.
+_Avoid_: VDI revision
 
 ### Project Document (ProjectDoc)
 A document associated with a Project that we **receive and record** but do not submit or get approved — drawings, specifications, special conditions, contracts, the vendor data schedule sheet, addendums, and the like. Contrast with a Vendor Data Item, which we submit to the buyer for approval. Explicitly excludes RFIs, RECs, and JSAs (future, separately-modeled features). One ProjectDoc represents one logical document; a 40-page drawing set is a single document stored as one file per version. Carries our own **label** (a required, non-unique name we assign — e.g. "E-101", "Contract"), set once and reused across all its versions, and a required document **type**. Has no lifecycle/status of its own.
