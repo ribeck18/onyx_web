@@ -169,21 +169,12 @@ function configure_modal(overlay, trigger) {
 
   // Reset, then pre-fill from the optional JSON payload on the trigger.
   form.reset();
-  // JSA decision modal: reset to the Approve (JSON) default and re-hide the
-  // reject-only return-file field. form.reset() restores the select to its blank
-  // option but not these JS-driven states, so do it explicitly on every open.
+  // JSA decision modal: form.reset() restores the blank Decision option but
+  // not its JS-driven JSON state, so remove a previously mounted reject field.
   const jsa_decision = form.querySelector("[data-jsa-decision]");
   if (jsa_decision) {
     delete form.dataset.encoding;
-    const reject_group = form.querySelector("[data-jsa-reject-only]");
-    if (reject_group) {
-      reject_group.hidden = true;
-      const file_input = reject_group.querySelector("input");
-      if (file_input) {
-        file_input.disabled = true;
-        file_input.required = false;
-      }
-    }
+    set_jsa_reject_field(form, false);
   }
   if (trigger.dataset.prefill) {
     const values = JSON.parse(trigger.dataset.prefill);
@@ -194,6 +185,24 @@ function configure_modal(overlay, trigger) {
       }
     }
   }
+}
+
+function set_jsa_reject_field(form, is_reject) {
+  const reject_field = form.querySelector("[data-jsa-reject-only]");
+  if (!is_reject) {
+    if (reject_field) {
+      reject_field.remove();
+    }
+    return;
+  }
+  if (reject_field) {
+    return;
+  }
+  const reject_template = form.querySelector("[data-jsa-reject-template]");
+  if (!reject_template) {
+    return;
+  }
+  reject_template.before(reject_template.content.cloneNode(true));
 }
 
 function show_modal_error(form, message) {
@@ -642,9 +651,9 @@ document.addEventListener("submit", (event) => {
   }
 });
 
-// The JSA decision modal routes one form to two endpoints. Choosing Approve or
-// Reject swaps the target URL (carried on the option) and, for Reject, switches
-// the form to multipart and reveals + requires the marked-up return-file field.
+// The JSA decision modal routes one form to two endpoints. Choosing Reject
+// mounts its file field, which prevents a stale JS asset from leaving a rendered
+// but permanently disabled upload control in the modal.
 document.addEventListener("change", (event) => {
   const decision = event.target.closest("[data-jsa-decision]");
   if (!decision) {
@@ -661,15 +670,7 @@ document.addEventListener("change", (event) => {
     delete form.dataset.encoding;
   }
 
-  const reject_group = form.querySelector("[data-jsa-reject-only]");
-  if (reject_group) {
-    reject_group.hidden = !is_reject;
-    const file_input = reject_group.querySelector("input");
-    if (file_input) {
-      file_input.disabled = !is_reject;
-      file_input.required = is_reject;
-    }
-  }
+  set_jsa_reject_field(form, is_reject);
 });
 
 // Save notes is enabled only while the textarea differs from the saved value.

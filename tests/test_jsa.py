@@ -107,6 +107,8 @@ async def test_project_and_jsa_pages_show_navigation_and_live_package(
     assert f'data-url="/api/projects/{project.id}/jsa"' in live_page.text
     assert "Delete the current JSA revision?" in live_page.text
     assert "Delete this JSA and its full revision history?" in live_page.text
+    assert '<template data-jsa-reject-template>' in live_page.text
+    assert 'data-jsa-reject-only hidden' not in live_page.text
 
 
 async def test_approve_jsa_records_comments_and_decision_date(

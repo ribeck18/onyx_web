@@ -183,11 +183,13 @@
               data-url="/api/projects/{{ project.id }}/jsa/reject">Reject — return marked-up package</option>
     </select>
   </label>
-  <label class="field" data-jsa-reject-only hidden>
-    <span class="field-label">Marked-up Return Package <span class="req">*</span></span>
-    <input type="file" name="files" class="field-file" multiple disabled>
-    <p class="modal-helper">Upload one to three buyer-marked-up files.</p>
-  </label>
+  <template data-jsa-reject-template>
+    <label class="field" data-jsa-reject-only>
+      <span class="field-label">Marked-up Return Package <span class="req">*</span></span>
+      <input type="file" name="files" class="field-file" multiple required>
+      <p class="modal-helper">Upload one to three buyer-marked-up files.</p>
+    </label>
+  </template>
   <label class="field">
     <span class="field-label">Buyer Comments</span>
     <textarea name="comments" class="field-input field-textarea" rows="3"></textarea>
