@@ -793,7 +793,7 @@ a { color: inherit; text-decoration: none; }
   gap: 48px;
   flex-wrap: wrap;
 }
-.vdi-col-left { flex: 1 1 440px; }
+.vdi-col-left { flex: 1 1 440px; min-width: 0; }
 .vdi-col-right { flex: 1 1 320px; }
 
 /* ---------------------------------------------------------------- buyer comments */
@@ -907,7 +907,7 @@ a { color: inherit; text-decoration: none; }
   border-radius: 3px;
   color: var(--muted);
 }
-.preview-download-name { font-size: 15px; }
+.preview-download-name { font-size: 15px; overflow-wrap: anywhere; }
 .preview-download-note {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
