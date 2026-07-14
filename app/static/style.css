@@ -846,7 +846,11 @@ a { color: inherit; text-decoration: none; }
 }
 .preview-open:hover { text-decoration: underline; }
 
-.preview-tabs { display: inline-flex; gap: 6px; }
+.preview-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(3, max-content);
+  gap: 6px;
+}
 
 .preview-tab {
   padding: 5px 12px;
