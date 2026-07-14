@@ -169,6 +169,22 @@ function configure_modal(overlay, trigger) {
 
   // Reset, then pre-fill from the optional JSON payload on the trigger.
   form.reset();
+  // JSA decision modal: reset to the Approve (JSON) default and re-hide the
+  // reject-only return-file field. form.reset() restores the select to its blank
+  // option but not these JS-driven states, so do it explicitly on every open.
+  const jsa_decision = form.querySelector("[data-jsa-decision]");
+  if (jsa_decision) {
+    delete form.dataset.encoding;
+    const reject_group = form.querySelector("[data-jsa-reject-only]");
+    if (reject_group) {
+      reject_group.hidden = true;
+      const file_input = reject_group.querySelector("input");
+      if (file_input) {
+        file_input.disabled = true;
+        file_input.required = false;
+      }
+    }
+  }
   if (trigger.dataset.prefill) {
     const values = JSON.parse(trigger.dataset.prefill);
     for (const [name, value] of Object.entries(values)) {
@@ -623,6 +639,36 @@ document.addEventListener("submit", (event) => {
   if (form) {
     event.preventDefault();
     submit_modal_form(form);
+  }
+});
+
+// The JSA decision modal routes one form to two endpoints. Choosing Approve or
+// Reject swaps the target URL (carried on the option) and, for Reject, switches
+// the form to multipart and reveals + requires the marked-up return-file field.
+document.addEventListener("change", (event) => {
+  const decision = event.target.closest("[data-jsa-decision]");
+  if (!decision) {
+    return;
+  }
+  const form = decision.closest("[data-modal-form]");
+  const option = decision.selectedOptions[0];
+  const is_reject = decision.value === "reject";
+
+  form.dataset.url = (option && option.dataset.url) || form.dataset.url;
+  if (is_reject) {
+    form.dataset.encoding = "multipart";
+  } else {
+    delete form.dataset.encoding;
+  }
+
+  const reject_group = form.querySelector("[data-jsa-reject-only]");
+  if (reject_group) {
+    reject_group.hidden = !is_reject;
+    const file_input = reject_group.querySelector("input");
+    if (file_input) {
+      file_input.disabled = !is_reject;
+      file_input.required = is_reject;
+    }
   }
 });
 

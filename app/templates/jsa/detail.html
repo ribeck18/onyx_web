@@ -57,21 +57,40 @@
 {% set active_links = returned_links if is_rejected else submitted_links %}
 {% set active_file = active_links[0].file %}
 <section class="lifecycle-row">
-  <p class="section-label lifecycle-label">DECISION</p>
+  <p class="section-label lifecycle-label">LIFECYCLE</p>
   {% if is_historical %}
-  <button type="button" class="lifecycle-btn" disabled>Revision record</button>
+  <button type="button" class="lifecycle-btn" disabled>Record decision</button>
   <p class="lifecycle-note">ACTIONS AVAILABLE ONLY ON CURRENT JSA.</p>
   {% elif is_submitted %}
-  <button type="button" class="lifecycle-btn lifecycle-accent" data-modal-open="approve-modal" data-title="Approve Job Safety Analysis" data-submit-label="Approve" data-method="POST" data-url="/api/projects/{{ project.id }}/jsa/approve">Approve</button>
-  <button type="button" class="lifecycle-btn lifecycle-bad" data-modal-open="reject-modal" data-title="Reject Job Safety Analysis" data-submit-label="Reject" data-method="POST" data-url="/api/projects/{{ project.id }}/jsa/reject">Reject</button>
+  <button type="button" class="lifecycle-btn lifecycle-info"
+          data-modal-open="decision-modal"
+          data-title="Record Buyer Decision"
+          data-submit-label="Save Decision"
+          data-method="POST"
+          data-url="/api/projects/{{ project.id }}/jsa/approve">Record Decision</button>
   <p class="lifecycle-note">RECORD THE BUYER'S DECISION FOR THIS PACKAGE.</p>
   {% elif is_resolved %}
-  <button type="button" class="lifecycle-btn lifecycle-accent" data-modal-open="revise-modal" data-title="Revise Job Safety Analysis" data-submit-label="Submit Revision" data-method="POST" data-url="/api/projects/{{ project.id }}/jsa/submit">Revise</button>
+  <button type="button" class="lifecycle-btn lifecycle-accent"
+          data-modal-open="revise-modal"
+          data-title="Revise Job Safety Analysis"
+          data-submit-label="Submit Revision"
+          data-method="POST"
+          data-url="/api/projects/{{ project.id }}/jsa/submit">Revise</button>
   <p class="lifecycle-note">UPLOAD A NEW PACKAGE FOR THE CHANGED SCOPE.</p>
   {% endif %}
   {% if not is_historical %}
-  <button type="button" class="lifecycle-btn lifecycle-bad" data-user-action data-method="DELETE" data-url="/api/projects/{{ project.id }}/jsa/revisions/{{ jsa.revisions[-1].id }}" data-confirm="Delete the current JSA revision? This cannot be undone." data-redirect="/projects/{{ project.id }}/jsa">Delete revision</button>
-  <button type="button" class="lifecycle-btn lifecycle-bad" data-user-action data-method="DELETE" data-url="/api/projects/{{ project.id }}/jsa" data-confirm="Delete this JSA and its full revision history? This cannot be undone." data-redirect="/projects/{{ project.id }}">Delete JSA</button>
+  <div class="row-actions doc-action-delete">
+    <button type="button" class="btn-ghost btn-row btn-row-danger"
+            data-user-action data-method="DELETE"
+            data-url="/api/projects/{{ project.id }}/jsa/revisions/{{ jsa.revisions[-1].id }}"
+            data-confirm="Delete the current JSA revision? This cannot be undone."
+            data-redirect="/projects/{{ project.id }}/jsa">Delete revision</button>
+    <button type="button" class="btn-ghost btn-row btn-row-danger"
+            data-user-action data-method="DELETE"
+            data-url="/api/projects/{{ project.id }}/jsa"
+            data-confirm="Delete this JSA and its full revision history? This cannot be undone."
+            data-redirect="/projects/{{ project.id }}">Delete JSA</button>
+  </div>
   {% endif %}
 </section>
 
@@ -153,12 +172,26 @@
   <p class="modal-helper">Upload one to three files. A competent-person roster is simply one package file.</p>
 {% endcall %}
 {% elif not is_historical and jsa.status.value == "submitted" %}
-{% call form_modal("approve-modal", "Approve Job Safety Analysis", "Approve") %}
-  <label class="field"><span class="field-label">Buyer Comments</span><textarea name="comments" class="field-input field-textarea" rows="3"></textarea></label>
-{% endcall %}
-{% call form_modal("reject-modal", "Reject Job Safety Analysis", "Reject", "Upload one to three marked-up files.", multipart=true) %}
-  <label class="field"><span class="field-label">Marked-up Return Package <span class="req">*</span></span><input type="file" name="files" class="field-file" multiple required></label>
-  <label class="field"><span class="field-label">Buyer Comments</span><textarea name="comments" class="field-input field-textarea" rows="3"></textarea></label>
+{% call form_modal("decision-modal", "Record Buyer Decision", "Save Decision", "A decision is required.", "Record the buyer's verdict for this JSA package.") %}
+  <label class="field">
+    <span class="field-label">Decision <span class="req">*</span></span>
+    <select class="field-input" data-jsa-decision required>
+      <option value="" disabled selected>Select…</option>
+      <option value="approve"
+              data-url="/api/projects/{{ project.id }}/jsa/approve">Approve</option>
+      <option value="reject" data-multipart
+              data-url="/api/projects/{{ project.id }}/jsa/reject">Reject — return marked-up package</option>
+    </select>
+  </label>
+  <label class="field" data-jsa-reject-only hidden>
+    <span class="field-label">Marked-up Return Package <span class="req">*</span></span>
+    <input type="file" name="files" class="field-file" multiple disabled>
+    <p class="modal-helper">Upload one to three buyer-marked-up files.</p>
+  </label>
+  <label class="field">
+    <span class="field-label">Buyer Comments</span>
+    <textarea name="comments" class="field-input field-textarea" rows="3"></textarea>
+  </label>
 {% endcall %}
 {% elif not is_historical and jsa.status.value in ["approved", "rejected"] %}
 {% call form_modal("revise-modal", "Revise Job Safety Analysis", "Submit Revision", "Upload one to three files.", multipart=true) %}
