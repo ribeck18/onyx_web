@@ -95,11 +95,13 @@ async def test_project_and_jsa_pages_show_navigation_and_live_package(
     project_page = await client.get(f"/projects/{project.id}")
     empty_page = await client.get(f"/projects/{project.id}/jsa")
     assert f'href="/projects/{project.id}/jsa"' in project_page.text
-    assert "NOT STARTED" in project_page.text
+    assert 'class="jsa-status-dot jsa-status-not-started"' in project_page.text
     assert "No job safety analysis yet." in empty_page.text
 
     await create_jsa(client, project.id)
     live_page = await client.get(f"/projects/{project.id}/jsa")
+    project_page = await client.get(f"/projects/{project.id}")
+    assert 'class="jsa-status-dot jsa-status-submitted"' in project_page.text
     assert "Submitted" in live_page.text
     assert "jsa.pdf" in live_page.text
     assert f'data-notes-url="/api/projects/{project.id}/jsa/notes"' in live_page.text

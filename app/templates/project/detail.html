@@ -41,7 +41,11 @@
   </a>
   <a class="doc-pill" href="/projects/{{ project.id }}/jsa">
     JSA
-    {% if jsa %}{{ jsa.status | status_label }}{% else %}NOT STARTED{% endif %}
+    {% set jsa_status = jsa.status.value if jsa else "not-started" %}
+    {% set jsa_status_label = jsa.status | status_hero_word if jsa else "Not started" %}
+    <span class="jsa-status-dot jsa-status-{{ jsa_status }}"
+          role="img"
+          aria-label="JSA status: {{ jsa_status_label }}"></span>
   </a>
 </div>
 
