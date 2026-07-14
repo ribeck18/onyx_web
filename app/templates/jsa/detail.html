@@ -116,7 +116,6 @@
           <button type="button" class="preview-tab{% if is_rejected and loop.first %} is-active{% endif %}" data-preview-tab="file-{{ link.id }}" data-filename="{{ link.file.original_name }}" data-file-url="/api/files/{{ link.file.id }}">RETURNED {{ loop.index }}</button>
           {% endfor %}
         </div>
-        <span class="preview-filename" data-preview-filename>{{ active_file.original_name }}</span>
         <a class="preview-open" data-preview-open href="/api/files/{{ active_file.id }}?download=1">DOWNLOAD</a>
       </div>
       {% for link in submitted_links %}
