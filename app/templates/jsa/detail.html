@@ -52,6 +52,7 @@
 {% set is_submitted = not is_historical and jsa.status.value == "submitted" %}
 {% set is_resolved = not is_historical and jsa.status.value in ["approved", "rejected"] %}
 {% set is_rejected = view_status.value == "rejected" %}
+{% set submitted_label = "APPROVED" if view_status.value == "approved" else "SUBMITTED" %}
 {% set submitted_links = view_revision.file_links | selectattr("file_group.value", "equalto", "submitted") | list %}
 {% set returned_links = view_revision.file_links | selectattr("file_group.value", "equalto", "returned") | list %}
 {% set active_links = returned_links if is_rejected else submitted_links %}
@@ -110,7 +111,7 @@
         <span class="preview-title">{% if is_historical %}REVISION PACKAGE{% else %}CURRENT PACKAGE{% endif %}</span>
         <div class="preview-tabs">
           {% for link in submitted_links %}
-          <button type="button" class="preview-tab{% if not is_rejected and loop.first %} is-active{% endif %}" data-preview-tab="file-{{ link.id }}" data-filename="{{ link.file.original_name }}" data-file-url="/api/files/{{ link.file.id }}">SUBMITTED {{ loop.index }}</button>
+          <button type="button" class="preview-tab{% if not is_rejected and loop.first %} is-active{% endif %}" data-preview-tab="file-{{ link.id }}" data-filename="{{ link.file.original_name }}" data-file-url="/api/files/{{ link.file.id }}">{{ submitted_label }} {{ loop.index }}</button>
           {% endfor %}
           {% for link in returned_links %}
           <button type="button" class="preview-tab{% if is_rejected and loop.first %} is-active{% endif %}" data-preview-tab="file-{{ link.id }}" data-filename="{{ link.file.original_name }}" data-file-url="/api/files/{{ link.file.id }}">RETURNED {{ loop.index }}</button>

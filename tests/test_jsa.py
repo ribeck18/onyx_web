@@ -130,6 +130,9 @@ async def test_approve_jsa_records_comments_and_decision_date(
     assert revision["comments"] == "Approved for site work."
     assert revision["decided_at"] is not None
     assert [link for link in revision["file_links"] if link["file_group"] == "returned"] == []
+    page = await client.get(f"/projects/{project.id}/jsa")
+    assert ">APPROVED 1</button>" in page.text
+    assert ">APPROVED 2</button>" in page.text
 
 
 async def test_reject_jsa_stores_returned_package_and_defaults_page_to_it(
