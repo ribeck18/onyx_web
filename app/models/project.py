@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 if TYPE_CHECKING:
+    from app.models.jsa import JSA
     from app.models.project_doc import ProjectDoc
     from app.models.vdi import VendorDataItem
 
@@ -42,4 +43,10 @@ class Project(Base):
         "ProjectDoc",
         back_populates="project",
         cascade="all, delete-orphan",
+    )
+    jsa: Mapped["JSA | None"] = relationship(
+        "JSA",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        uselist=False,
     )

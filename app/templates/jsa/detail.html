@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% from "macros/badge.html" import status_badge %}
+{% from "macros/modal.html" import form_modal %}
+{% from "macros/preview.html" import file_pane %}
+
+{% set is_historical = historical | default(false) %}
+
+{% block title %}JSA · {{ project.name }} · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}">{{ project.project_number }}</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">JSA</span>
+{% endblock %}
+
+{% block banner %}
+{% if is_historical %}
+<div class="hist-banner">
+  <div class="hist-banner-inner">
+    <span class="hist-banner-glyph" aria-hidden="true">!</span>
+    <span class="hist-banner-text">VIEWING PAST REVISION — NOT THE CURRENT STATE OF THIS JSA.</span>
+    <a class="hist-banner-link" href="/projects/{{ project.id }}/jsa">RETURN TO CURRENT &#8617;</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="vdi-hero">
+  <div class="vdi-hero-main">
+    <p class="eyebrow">PROJECT SAFETY</p>
+    <h1 class="h1-vdi">Job Safety Analysis</h1>
+  </div>
+  {% if jsa %}
+  {% set view_revision = revision if is_historical else jsa.revisions[-1] %}
+  {% set view_status = view_revision.status if is_historical else jsa.status %}
+  <div class="vdi-hero-status">
+    <p class="eyebrow">STATUS</p>
+    <div class="hero-status fam-{{ view_status | status_family }}">
+      <span class="hero-dot" aria-hidden="true"></span>
+      <span class="hero-word">{{ view_status | status_hero_word }}</span>
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<div class="gradient-rule"></div>
+
+{% if jsa %}
+{% set is_submitted = not is_historical and jsa.status.value == "submitted" %}
+{% set is_resolved = not is_historical and jsa.status.value in ["approved", "rejected"] %}
+{% set is_rejected = view_status.value == "rejected" %}
+{% set submitted_label = "APPROVED" if view_status.value == "approved" else "SUBMITTED" %}
+{% set submitted_links = view_revision.file_links | selectattr("file_group.value", "equalto", "submitted") | list %}
+{% set returned_links = view_revision.file_links | selectattr("file_group.value", "equalto", "returned") | list %}
+{% set active_links = returned_links if is_rejected else submitted_links %}
+{% set active_file = active_links[0].file %}
+<section class="lifecycle-row">
+  <p class="section-label lifecycle-label">LIFECYCLE</p>
+  {% if is_historical %}
+  <button type="button" class="lifecycle-btn" disabled>Record decision</button>
+  <p class="lifecycle-note">ACTIONS AVAILABLE ONLY ON CURRENT JSA.</p>
+  {% elif is_submitted %}
+  <button type="button" class="lifecycle-btn lifecycle-info"
+          data-modal-open="decision-modal"
+          data-title="Record Buyer Decision"
+          data-submit-label="Save Decision"
+          data-method="POST"
+          data-url="/api/projects/{{ project.id }}/jsa/approve">Record Decision</button>
+  <p class="lifecycle-note">RECORD THE BUYER'S DECISION FOR THIS PACKAGE.</p>
+  {% elif is_resolved %}
+  <button type="button" class="lifecycle-btn lifecycle-accent"
+          data-modal-open="revise-modal"
+          data-title="Revise Job Safety Analysis"
+          data-submit-label="Submit Revision"
+          data-method="POST"
+          data-url="/api/projects/{{ project.id }}/jsa/submit">Revise</button>
+  <p class="lifecycle-note">UPLOAD A NEW PACKAGE FOR THE CHANGED SCOPE.</p>
+  {% endif %}
+  {% if not is_historical %}
+  <div class="row-actions doc-action-delete">
+    <button type="button" class="btn-ghost btn-row btn-row-danger"
+            data-user-action data-method="DELETE"
+            data-url="/api/projects/{{ project.id }}/jsa/revisions/{{ jsa.revisions[-1].id }}"
+            data-confirm="Delete the current JSA revision? This cannot be undone."
+            data-redirect="/projects/{{ project.id }}/jsa">Delete revision</button>
+    <button type="button" class="btn-ghost btn-row btn-row-danger"
+            data-user-action data-method="DELETE"
+            data-url="/api/projects/{{ project.id }}/jsa"
+            data-confirm="Delete this JSA and its full revision history? This cannot be undone."
+            data-redirect="/projects/{{ project.id }}">Delete JSA</button>
+  </div>
+  {% endif %}
+</section>
+
+<div class="plain-rule"></div>
+
+<section class="vdi-columns">
+  <div class="vdi-col-left">
+    {% if view_revision.comments %}
+    <div class="buyer-comments">
+      <p class="buyer-comments-label">BUYER COMMENTS</p>
+      <p class="buyer-comments-text">{{ view_revision.comments }}</p>
+    </div>
+    {% endif %}
+
+    <div class="preview">
+      <div class="preview-head">
+        <span class="preview-title">{% if is_historical %}REVISION PACKAGE{% else %}CURRENT PACKAGE{% endif %}</span>
+        <div class="preview-tabs">
+          {% for link in submitted_links %}
+          <button type="button" class="preview-tab{% if not is_rejected and loop.first %} is-active{% endif %}" data-preview-tab="file-{{ link.id }}" data-filename="{{ link.file.original_name }}" data-file-url="/api/files/{{ link.file.id }}">{{ submitted_label }} {{ loop.index }}</button>
+          {% endfor %}
+          {% for link in returned_links %}
+          <button type="button" class="preview-tab{% if is_rejected and loop.first %} is-active{% endif %}" data-preview-tab="file-{{ link.id }}" data-filename="{{ link.file.original_name }}" data-file-url="/api/files/{{ link.file.id }}">RETURNED {{ loop.index }}</button>
+          {% endfor %}
+        </div>
+        <a class="preview-open" data-preview-open href="/api/files/{{ active_file.id }}?download=1">DOWNLOAD</a>
+      </div>
+      {% for link in submitted_links %}
+      <div class="preview-pane" data-preview-panel="file-{{ link.id }}"{% if is_rejected or not loop.first %} hidden{% endif %}>{{ file_pane(link.file) }}</div>
+      {% endfor %}
+      {% for link in returned_links %}
+      <div class="preview-pane" data-preview-panel="file-{{ link.id }}"{% if not is_rejected or not loop.first %} hidden{% endif %}>{{ file_pane(link.file) }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="notes"{% if not is_historical %} data-notes data-notes-url="/api/projects/{{ project.id }}/jsa/notes"{% endif %}>
+      <div class="notes-head">
+        <p class="section-label">NOTES</p>
+        {% if is_historical %}<span class="notes-readonly">READ-ONLY</span>{% else %}<span class="notes-saved" data-notes-saved hidden>SAVED &#10003;</span>{% endif %}
+      </div>
+      <textarea class="notes-text" rows="4" data-notes-input{% if is_historical %} disabled{% endif %}>{{ jsa.notes or "" }}</textarea>
+      {% if not is_historical %}<button type="button" class="save-notes" data-notes-save disabled>Save notes</button>{% endif %}
+    </div>
+  </div>
+
+  <div class="vdi-col-right">
+    <p class="section-label">REVISION LOG</p>
+    <div class="timeline">
+      {% for entry in revisions %}
+      {% set is_latest = loop.last %}
+      {% set is_viewed = entry.id == view_revision.id %}
+      <a class="timeline-entry" href="{% if is_latest %}/projects/{{ project.id }}/jsa{% else %}/projects/{{ project.id }}/jsa/revisions/{{ entry.id }}{% endif %}">
+        <span class="timeline-node fam-{{ entry.status | status_family }}{% if is_viewed %} is-current{% endif %}" aria-hidden="true"></span>
+        <div class="timeline-row">
+          <span class="timeline-rev">REV {{ entry.revision_number }}</span>
+          {% if is_viewed %}<span class="timeline-current-tag">CURRENT</span>{% endif %}
+          {{ status_badge(entry.status) }}
+        </div>
+        <p class="timeline-dates">SUB {{ entry.submitted_at.strftime("%Y-%m-%d") }}{% if entry.decided_at %} · DEC {{ entry.decided_at.strftime("%Y-%m-%d") }}{% else %} · AWAITING DECISION{% endif %}</p>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">No job safety analysis yet.</p>
+  <p class="empty-sub">Upload the first submitted package to begin approval tracking.</p>
+  <button type="button" class="btn-primary" data-modal-open="jsa-modal" data-title="Create Job Safety Analysis" data-submit-label="Create JSA" data-method="POST" data-url="/api/projects/{{ project.id }}/jsa">+ Create JSA</button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+{% if not jsa %}
+{% call form_modal("jsa-modal", "Create Job Safety Analysis", "Create JSA", "Upload one to three files.", multipart=true) %}
+  <label class="field"><span class="field-label">Submitted Package <span class="req">*</span></span><input type="file" name="files" class="field-file" multiple required></label>
+  <p class="modal-helper">Upload one to three files. A competent-person roster is simply one package file.</p>
+{% endcall %}
+{% elif not is_historical and jsa.status.value == "submitted" %}
+{% call form_modal("decision-modal", "Record Buyer Decision", "Save Decision", "A decision is required.", "Record the buyer's verdict for this JSA package.") %}
+  <label class="field">
+    <span class="field-label">Decision <span class="req">*</span></span>
+    <select class="field-input" data-jsa-decision required>
+      <option value="" disabled selected>Select…</option>
+      <option value="approve"
+              data-url="/api/projects/{{ project.id }}/jsa/approve">Approve</option>
+      <option value="reject" data-multipart
+              data-url="/api/projects/{{ project.id }}/jsa/reject">Reject — return marked-up package</option>
+    </select>
+  </label>
+  <template data-jsa-reject-template>
+    <label class="field" data-jsa-reject-only>
+      <span class="field-label">Marked-up Return Package <span class="req">*</span></span>
+      <input type="file" name="files" class="field-file" multiple required>
+      <p class="modal-helper">Upload one to three buyer-marked-up files.</p>
+    </label>
+  </template>
+  <label class="field">
+    <span class="field-label">Buyer Comments</span>
+    <textarea name="comments" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+{% elif not is_historical and jsa.status.value in ["approved", "rejected"] %}
+{% call form_modal("revise-modal", "Revise Job Safety Analysis", "Submit Revision", "Upload one to three files.", multipart=true) %}
+  <label class="field"><span class="field-label">Submitted Package <span class="req">*</span></span><input type="file" name="files" class="field-file" multiple required></label>
+  <p class="modal-helper">Uploads a new submitted package for the changed scope.</p>
+{% endcall %}
+{% endif %}
+{% endblock %}

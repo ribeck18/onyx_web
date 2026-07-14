@@ -169,6 +169,13 @@ function configure_modal(overlay, trigger) {
 
   // Reset, then pre-fill from the optional JSON payload on the trigger.
   form.reset();
+  // JSA decision modal: form.reset() restores the blank Decision option but
+  // not its JS-driven JSON state, so remove a previously mounted reject field.
+  const jsa_decision = form.querySelector("[data-jsa-decision]");
+  if (jsa_decision) {
+    delete form.dataset.encoding;
+    set_jsa_reject_field(form, false);
+  }
   if (trigger.dataset.prefill) {
     const values = JSON.parse(trigger.dataset.prefill);
     for (const [name, value] of Object.entries(values)) {
@@ -178,6 +185,24 @@ function configure_modal(overlay, trigger) {
       }
     }
   }
+}
+
+function set_jsa_reject_field(form, is_reject) {
+  const reject_field = form.querySelector("[data-jsa-reject-only]");
+  if (!is_reject) {
+    if (reject_field) {
+      reject_field.remove();
+    }
+    return;
+  }
+  if (reject_field) {
+    return;
+  }
+  const reject_template = form.querySelector("[data-jsa-reject-template]");
+  if (!reject_template) {
+    return;
+  }
+  reject_template.before(reject_template.content.cloneNode(true));
 }
 
 function show_modal_error(form, message) {
@@ -624,6 +649,28 @@ document.addEventListener("submit", (event) => {
     event.preventDefault();
     submit_modal_form(form);
   }
+});
+
+// The JSA decision modal routes one form to two endpoints. Choosing Reject
+// mounts its file field, which prevents a stale JS asset from leaving a rendered
+// but permanently disabled upload control in the modal.
+document.addEventListener("change", (event) => {
+  const decision = event.target.closest("[data-jsa-decision]");
+  if (!decision) {
+    return;
+  }
+  const form = decision.closest("[data-modal-form]");
+  const option = decision.selectedOptions[0];
+  const is_reject = decision.value === "reject";
+
+  form.dataset.url = (option && option.dataset.url) || form.dataset.url;
+  if (is_reject) {
+    form.dataset.encoding = "multipart";
+  } else {
+    delete form.dataset.encoding;
+  }
+
+  set_jsa_reject_field(form, is_reject);
 });
 
 // Save notes is enabled only while the textarea differs from the saved value.

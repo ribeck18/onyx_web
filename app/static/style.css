@@ -15,6 +15,7 @@
   --info:#4ea1ff;        --info-text:#4ea1ff;   --info-line:#2a3a4d;   --info-soft:rgba(78,161,255,.1);
   --ns:#5a6473;          --ns-text:#9aa3b2;     --ns-line:#262b34;     --ns-soft:#1a1e26;
   --warn-text:#e8b15f;   --warn-line:#5a4422;   --warn-soft:rgba(232,177,95,.1);
+  --jsa-submit-status:#ffe600;
   --topbar:rgba(18,21,27,.9);                   --topbar-line:#1c2026;
   --btn-bg:#4ea1ff;      --btn-text:#08121d;    --btn-hover:#6ab2ff;
   --ghost-bg:transparent;--ghost-line:#2c3340;  --ghost-text:#cdd3df;
@@ -35,6 +36,7 @@
   --info:#2f6fed;        --info-text:#2f6fed;   --info-line:#c5dbf7;   --info-soft:#eef4fd;
   --ns:#9aa1ae;          --ns-text:#6c7585;     --ns-line:#e6e9ee;     --ns-soft:#eef0f3;
   --warn-text:#9a6a12;   --warn-line:#eccf86;   --warn-soft:#fdf3e0;
+  --jsa-submit-status:#d6a900;
   --topbar:#ffffff;                             --topbar-line:#e2e6ec;
   --btn-bg:#2f6fed;      --btn-text:#ffffff;    --btn-hover:#225fd6;
   --ghost-bg:#ffffff;    --ghost-line:#dde2ea;  --ghost-text:#2a313d;
@@ -370,6 +372,17 @@ a { color: inherit; text-decoration: none; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 10.5px;
 }
+
+.jsa-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--jsa-status);
+}
+.jsa-status-not-started { --jsa-status: var(--ns); }
+.jsa-status-submitted { --jsa-status: var(--jsa-submit-status); }
+.jsa-status-approved { --jsa-status: var(--ok); }
+.jsa-status-rejected { --jsa-status: var(--bad); }
 
 /* ---------------------------------------------------------------- project gallery */
 
@@ -793,7 +806,7 @@ a { color: inherit; text-decoration: none; }
   gap: 48px;
   flex-wrap: wrap;
 }
-.vdi-col-left { flex: 1 1 440px; }
+.vdi-col-left { flex: 1 1 440px; min-width: 0; }
 .vdi-col-right { flex: 1 1 320px; }
 
 /* ---------------------------------------------------------------- buyer comments */
@@ -846,7 +859,11 @@ a { color: inherit; text-decoration: none; }
 }
 .preview-open:hover { text-decoration: underline; }
 
-.preview-tabs { display: inline-flex; gap: 6px; }
+.preview-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(3, max-content);
+  gap: 6px;
+}
 
 .preview-tab {
   padding: 5px 12px;
@@ -907,7 +924,7 @@ a { color: inherit; text-decoration: none; }
   border-radius: 3px;
   color: var(--muted);
 }
-.preview-download-name { font-size: 15px; }
+.preview-download-name { font-size: 15px; overflow-wrap: anywhere; }
 .preview-download-note {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;

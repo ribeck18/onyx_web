@@ -9,6 +9,7 @@ meanings minimal to avoid drift — the meaning lives here.
 
 from __future__ import annotations
 
+from app.jsa.status import JsaStatus
 from app.project_doc.document_type import DocumentType
 from app.vdi.approval_type import ApprovalType
 from app.vdi.submit_code import SubmitCode
@@ -26,23 +27,29 @@ STATUS_LABELS: dict[SubmitStatus, str] = {
 
 # Status → color family. Badges, dots, hero, timeline, and the lifecycle button
 # all paint from the token group named here (e.g. --ok, --ok-text, --ok-line).
-STATUS_FAMILIES: dict[SubmitStatus, str] = {
+STATUS_FAMILIES: dict[SubmitStatus | JsaStatus, str] = {
     SubmitStatus.NOT_STARTED: "ns",
     SubmitStatus.SUBMITTED: "info",
     SubmitStatus.A: "ok",
     SubmitStatus.D: "ok",
     SubmitStatus.B: "bad",
     SubmitStatus.C: "bad",
+    JsaStatus.SUBMITTED: "info",
+    JsaStatus.APPROVED: "ok",
+    JsaStatus.REJECTED: "bad",
 }
 
 # The single status word for the VDI hero treatment (sentence case).
-STATUS_HERO_WORDS: dict[SubmitStatus, str] = {
+STATUS_HERO_WORDS: dict[SubmitStatus | JsaStatus, str] = {
     SubmitStatus.NOT_STARTED: "Not started",
     SubmitStatus.SUBMITTED: "Submitted",
     SubmitStatus.A: "Approved",
     SubmitStatus.D: "Approved",
     SubmitStatus.B: "Rejected",
     SubmitStatus.C: "Rejected",
+    JsaStatus.SUBMITTED: "Submitted",
+    JsaStatus.APPROVED: "Approved",
+    JsaStatus.REJECTED: "Rejected",
 }
 
 APPROVAL_TYPE_LABELS: dict[ApprovalType, str] = {
@@ -94,18 +101,20 @@ DOCUMENT_TYPE_FAMILIES: dict[DocumentType, str] = {
 }
 
 
-def status_label(status: SubmitStatus) -> str:
-    """Return the UPPERCASE badge string for a submit status."""
+def status_label(status: SubmitStatus | JsaStatus) -> str:
+    """Return the UPPERCASE badge string for a lifecycle status."""
+    if isinstance(status, JsaStatus):
+        return status.value.upper()
     return STATUS_LABELS[status]
 
 
-def status_family(status: SubmitStatus) -> str:
-    """Return the color-family key (ns/info/ok/bad) for a submit status."""
+def status_family(status: SubmitStatus | JsaStatus) -> str:
+    """Return the color-family key (ns/info/ok/bad) for a lifecycle status."""
     return STATUS_FAMILIES[status]
 
 
-def status_hero_word(status: SubmitStatus) -> str:
-    """Return the sentence-case hero word for a submit status."""
+def status_hero_word(status: SubmitStatus | JsaStatus) -> str:
+    """Return the sentence-case hero word for a lifecycle status."""
     return STATUS_HERO_WORDS[status]
 
 
