@@ -42,6 +42,14 @@ async def get_rfi(session: AsyncSession, rfi_id: int) -> Rfi | None:
     return result.scalar_one_or_none()
 
 
+async def get_rfi_for_update(session: AsyncSession, rfi_id: int) -> Rfi | None:
+    """Return and lock one RFI until the current transaction completes."""
+    result = await session.execute(
+        select(Rfi).where(Rfi.id == rfi_id).with_for_update()
+    )
+    return result.scalar_one_or_none()
+
+
 async def get_rfis(session: AsyncSession, project_id: int) -> list[Rfi]:
     """Return one project's RFIs ordered by their entered RFI Number."""
     result = await session.execute(

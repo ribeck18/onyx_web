@@ -113,7 +113,7 @@ async def submit_rfi(
     The lifecycle guard precedes file storage so invalid submissions cannot
     write an orphaned file.
     """
-    rfi = await service.get_rfi(session, rfi_id)
+    rfi = await service.get_rfi_for_update(session, rfi_id)
     if rfi is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -145,7 +145,7 @@ async def return_rfi(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="decision must be Approved or Rejected",
         )
-    rfi = await service.get_rfi(session, rfi_id)
+    rfi = await service.get_rfi_for_update(session, rfi_id)
     if rfi is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
