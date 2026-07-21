@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -33,7 +34,14 @@ async def create_rfi(
             status_code=status.HTTP_409_CONFLICT,
             detail="RFI number already used in this project",
         )
-    rfi = await service.create_rfi(session, data)
+    try:
+        rfi = await service.create_rfi(session, data)
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="RFI number already used in this project",
+        )
     await session.commit()
     return RfiRead.model_validate(rfi)
 
@@ -96,7 +104,14 @@ async def update_rfi(
                 detail="RFI number already used in this project",
             )
 
-    rfi = await service.update_rfi(session, rfi, data)
+    try:
+        rfi = await service.update_rfi(session, rfi, data)
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="RFI number already used in this project",
+        )
     await session.commit()
     return RfiRead.model_validate(rfi)
 
