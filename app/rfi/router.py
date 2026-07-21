@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
+from app.file import service as file_service
+from app.file.dependencies import get_storage_root
 from app.project import service as project_service
 from app.rfi import service
 from app.rfi.schema import RfiCreate, RfiRead, RfiUpdate
+from app.rfi.status import RfiStatus
 
 router = APIRouter(prefix="/rfis", tags=["rfis"])
 
@@ -74,6 +79,15 @@ async def update_rfi(
 
     supplied = data.model_dump(exclude_unset=True)
     rfi_number = supplied.get("rfi_number")
+    if (
+        rfi.status is not RfiStatus.NOT_STARTED
+        and rfi_number is not None
+        and rfi_number != rfi.rfi_number
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="RFI number is locked once the RFI is submitted",
+        )
     if rfi_number is not None and rfi_number != rfi.rfi_number:
         sibling = await service.get_rfi_by_number(session, rfi.project_id, rfi_number)
         if sibling is not None:
@@ -83,6 +97,35 @@ async def update_rfi(
             )
 
     rfi = await service.update_rfi(session, rfi, data)
+    await session.commit()
+    return RfiRead.model_validate(rfi)
+
+
+@router.post("/{rfi_id}/submit", response_model=RfiRead)
+async def submit_rfi(
+    rfi_id: int,
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session),
+    storage_root: Path = Depends(get_storage_root),
+) -> RfiRead:
+    """Submit an RFI's required first file as Revision 0.
+
+    The lifecycle guard precedes file storage so invalid submissions cannot
+    write an orphaned file.
+    """
+    rfi = await service.get_rfi(session, rfi_id)
+    if rfi is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="RFI not found",
+        )
+    if rfi.status not in service.SUBMITTABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="RFI cannot be submitted from its current status",
+        )
+    submit_file = await file_service.save_upload(session, file, storage_root)
+    await service.submit_rfi(session, rfi, submit_file)
     await session.commit()
     return RfiRead.model_validate(rfi)
 

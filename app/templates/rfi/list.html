@@ -53,6 +53,7 @@
     {% for rfi in rfis %}
     <tr class="vdi-row"
         data-rfi-row
+        data-row-href="/rfis/{{ rfi.id }}"
         data-delete-row
         data-delete-url="/api/rfis/{{ rfi.id }}"
         data-delete-confirm="Delete RFI &quot;{{ rfi.rfi_number }}&quot;?"

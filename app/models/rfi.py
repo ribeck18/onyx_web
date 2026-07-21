@@ -19,6 +19,7 @@ from app.rfi.status import RfiStatus
 
 if TYPE_CHECKING:
     from app.models.project import Project
+    from app.models.rfi_revision import RfiRevision
 
 
 class Rfi(Base):
@@ -64,3 +65,8 @@ class Rfi(Base):
     )
 
     project: Mapped["Project"] = relationship("Project", back_populates="rfis")
+    revisions: Mapped[list["RfiRevision"]] = relationship(
+        "RfiRevision",
+        back_populates="rfi",
+        cascade="all, delete-orphan",
+    )

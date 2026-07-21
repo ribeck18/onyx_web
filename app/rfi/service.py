@@ -1,12 +1,22 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.rfi import Rfi
+from app.rfi.revision import service as revision_service
 from app.rfi.schema import RfiCreate, RfiUpdate
+from app.rfi.status import RfiStatus
+
+if TYPE_CHECKING:
+    from app.models.file import File
+    from app.models.rfi_revision import RfiRevision
+
+
+SUBMITTABLE_STATUSES = frozenset({RfiStatus.NOT_STARTED})
 
 
 async def create_rfi(session: AsyncSession, data: RfiCreate) -> Rfi:
@@ -35,6 +45,18 @@ async def get_rfis(session: AsyncSession, project_id: int) -> list[Rfi]:
         select(Rfi).where(Rfi.project_id == project_id).order_by(Rfi.rfi_number)
     )
     return list(result.scalars().all())
+
+
+async def submit_rfi(
+    session: AsyncSession,
+    rfi: Rfi,
+    submit_file: File,
+) -> RfiRevision:
+    """Create an RFI revision and move the live RFI to Submitted."""
+    revision = await revision_service.create_revision(session, rfi, submit_file)
+    rfi.status = RfiStatus.SUBMITTED
+    await session.flush()
+    return revision
 
 
 async def get_rfi_by_number(
