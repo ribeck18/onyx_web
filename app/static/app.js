@@ -41,7 +41,7 @@ async function send_json(method, url, payload) {
 async function send_form(method, url, form) {
   const data = new FormData(form);
   for (const [name, value] of [...data.entries()]) {
-    if (value === "") {
+    if (value === "" || (value instanceof File && value.size === 0 && value.name === "")) {
       data.delete(name);
     }
   }

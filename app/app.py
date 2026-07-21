@@ -18,6 +18,7 @@ from app.project.router import router as project_router
 from app.project.web_pages import router as project_pages_router
 from app.rfi.router import router as rfi_router
 from app.rfi.revision.router import router as rfi_revision_router
+from app.rfi.revision.web_pages import router as rfi_revision_pages_router
 from app.rfi.web_pages import router as rfi_pages_router
 from app.project_doc.router import router as project_doc_router
 from app.project_doc.web_pages import router as project_doc_pages_router
@@ -65,6 +66,7 @@ app.include_router(token_pages_router)
 app.include_router(project_pages_router)
 app.include_router(project_doc_pages_router)
 app.include_router(rfi_pages_router)
+app.include_router(rfi_revision_pages_router)
 app.include_router(jsa_pages_router)
 app.include_router(vdi_pages_router)
 app.include_router(revision_pages_router)

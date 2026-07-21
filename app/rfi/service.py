@@ -16,7 +16,10 @@ if TYPE_CHECKING:
     from app.models.rfi_revision import RfiRevision
 
 
-SUBMITTABLE_STATUSES = frozenset({RfiStatus.NOT_STARTED})
+SUBMITTABLE_STATUSES = frozenset(
+    {RfiStatus.NOT_STARTED, RfiStatus.APPROVED, RfiStatus.REJECTED}
+)
+RETURNABLE_STATUSES = frozenset({RfiStatus.SUBMITTED})
 
 
 async def create_rfi(session: AsyncSession, data: RfiCreate) -> Rfi:
@@ -55,6 +58,29 @@ async def submit_rfi(
     """Create an RFI revision and move the live RFI to Submitted."""
     revision = await revision_service.create_revision(session, rfi, submit_file)
     rfi.status = RfiStatus.SUBMITTED
+    await session.flush()
+    return revision
+
+
+async def return_rfi(
+    session: AsyncSession,
+    rfi: Rfi,
+    decision: RfiStatus,
+    return_file: File | None,
+    comments: str | None,
+) -> RfiRevision:
+    """Record the buyer's decision on the latest RFI revision."""
+    latest_revision = await revision_service.get_latest_revision(session, rfi.id)
+    if latest_revision is None:
+        raise RuntimeError("Submitted RFI has no revision")
+    revision = await revision_service.record_return(
+        session,
+        latest_revision,
+        decision,
+        return_file,
+        comments,
+    )
+    rfi.status = decision
     await session.flush()
     return revision
 

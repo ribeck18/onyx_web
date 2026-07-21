@@ -45,6 +45,31 @@ async def test_live_rfi_detail_shows_submission_preview_notes_and_timeline(
     assert 'data-url="/api/rfis/%s/submit"' % rfi_id not in body
 
 
+async def test_rfi_detail_topbar_uses_entered_rfi_number(
+    client: AsyncClient,
+    session: AsyncSession,
+) -> None:
+    """The detail topbar identifies an RFI by its entered number, not its ID."""
+    project = make_project()
+    session.add(project)
+    await session.flush()
+    created = await client.post(
+        "/api/rfis",
+        json={
+            "project_id": project.id,
+            "rfi_number": "FIELD-42",
+            "title": "Clarify foundation elevation",
+        },
+    )
+    rfi_id = created.json()["id"]
+
+    response = await client.get(f"/rfis/{rfi_id}")
+
+    assert response.status_code == 200
+    assert '<span class="vdi-tag">FIELD-42</span>' in response.text
+    assert f'<span class="vdi-tag">RFI-{rfi_id}</span>' not in response.text
+
+
 async def test_rfi_list_navigates_to_live_detail(
     client: AsyncClient,
     session: AsyncSession,

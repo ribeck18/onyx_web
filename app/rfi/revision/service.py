@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.rfi_revision import RfiRevision
+from app.rfi.status import RfiStatus
 
 if TYPE_CHECKING:
     from app.models.file import File
@@ -35,6 +36,22 @@ async def create_revision(
         submitted_at=datetime.now(timezone.utc),
     )
     session.add(revision)
+    await session.flush()
+    return revision
+
+
+async def record_return(
+    session: AsyncSession,
+    revision: RfiRevision,
+    decision: RfiStatus,
+    return_file: File | None,
+    comments: str | None,
+) -> RfiRevision:
+    """Record the buyer's optional return material and required decision."""
+    revision.return_file = return_file
+    revision.returned_at = datetime.now(timezone.utc)
+    revision.comments = comments
+    revision.status = decision
     await session.flush()
     return revision
 

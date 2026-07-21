@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -41,6 +41,15 @@ class RfiRevision(Base):
         DateTime(timezone=True),
         nullable=False,
     )
+    return_file_id: Mapped[int | None] = mapped_column(
+        ForeignKey("files.id"),
+        nullable=True,
+    )
+    returned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    comments: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[RfiStatus] = mapped_column(
         Enum(
             RfiStatus,
@@ -67,4 +76,9 @@ class RfiRevision(Base):
         "File",
         lazy="selectin",
         foreign_keys=[submit_file_id],
+    )
+    return_file: Mapped["File | None"] = relationship(
+        "File",
+        lazy="selectin",
+        foreign_keys=[return_file_id],
     )

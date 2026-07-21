@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -126,6 +126,42 @@ async def submit_rfi(
         )
     submit_file = await file_service.save_upload(session, file, storage_root)
     await service.submit_rfi(session, rfi, submit_file)
+    await session.commit()
+    return RfiRead.model_validate(rfi)
+
+
+@router.post("/{rfi_id}/return", response_model=RfiRead)
+async def return_rfi(
+    rfi_id: int,
+    decision: RfiStatus = Form(...),
+    file: UploadFile | None = File(None),
+    comments: str | None = Form(None),
+    session: AsyncSession = Depends(get_session),
+    storage_root: Path = Depends(get_storage_root),
+) -> RfiRead:
+    """Record an Approved or Rejected buyer return on the latest revision."""
+    if decision not in {RfiStatus.APPROVED, RfiStatus.REJECTED}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="decision must be Approved or Rejected",
+        )
+    rfi = await service.get_rfi(session, rfi_id)
+    if rfi is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="RFI not found",
+        )
+    if rfi.status not in service.RETURNABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="RFI cannot be returned from its current status",
+        )
+    return_file = (
+        await file_service.save_upload(session, file, storage_root)
+        if file is not None
+        else None
+    )
+    await service.return_rfi(session, rfi, decision, return_file, comments)
     await session.commit()
     return RfiRead.model_validate(rfi)
 
