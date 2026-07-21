@@ -11,42 +11,55 @@ from __future__ import annotations
 
 from app.jsa.status import JsaStatus
 from app.project_doc.document_type import DocumentType
+from app.rfi.status import RfiStatus
 from app.vdi.approval_type import ApprovalType
 from app.vdi.submit_code import SubmitCode
 from app.vdi.submit_status import SubmitStatus
 
 # Status badge strings (exact, UPPERCASE) shown in tables, cards, and timelines.
-STATUS_LABELS: dict[SubmitStatus, str] = {
+STATUS_LABELS: dict[SubmitStatus | RfiStatus, str] = {
     SubmitStatus.NOT_STARTED: "NOT STARTED",
     SubmitStatus.SUBMITTED: "SUBMITTED",
     SubmitStatus.A: "APPROVED /A",
     SubmitStatus.D: "APPROVED /D",
     SubmitStatus.B: "REJECTED /B",
     SubmitStatus.C: "REJECTED /C",
+    RfiStatus.NOT_STARTED: "NOT STARTED",
+    RfiStatus.SUBMITTED: "SUBMITTED",
+    RfiStatus.APPROVED: "APPROVED",
+    RfiStatus.REJECTED: "REJECTED",
 }
 
 # Status → color family. Badges, dots, hero, timeline, and the lifecycle button
 # all paint from the token group named here (e.g. --ok, --ok-text, --ok-line).
-STATUS_FAMILIES: dict[SubmitStatus | JsaStatus, str] = {
+STATUS_FAMILIES: dict[SubmitStatus | JsaStatus | RfiStatus, str] = {
     SubmitStatus.NOT_STARTED: "ns",
     SubmitStatus.SUBMITTED: "info",
     SubmitStatus.A: "ok",
     SubmitStatus.D: "ok",
     SubmitStatus.B: "bad",
     SubmitStatus.C: "bad",
+    RfiStatus.NOT_STARTED: "ns",
+    RfiStatus.SUBMITTED: "info",
+    RfiStatus.APPROVED: "ok",
+    RfiStatus.REJECTED: "bad",
     JsaStatus.SUBMITTED: "info",
     JsaStatus.APPROVED: "ok",
     JsaStatus.REJECTED: "bad",
 }
 
 # The single status word for the VDI hero treatment (sentence case).
-STATUS_HERO_WORDS: dict[SubmitStatus | JsaStatus, str] = {
+STATUS_HERO_WORDS: dict[SubmitStatus | JsaStatus | RfiStatus, str] = {
     SubmitStatus.NOT_STARTED: "Not started",
     SubmitStatus.SUBMITTED: "Submitted",
     SubmitStatus.A: "Approved",
     SubmitStatus.D: "Approved",
     SubmitStatus.B: "Rejected",
     SubmitStatus.C: "Rejected",
+    RfiStatus.NOT_STARTED: "Not started",
+    RfiStatus.SUBMITTED: "Submitted",
+    RfiStatus.APPROVED: "Approved",
+    RfiStatus.REJECTED: "Rejected",
     JsaStatus.SUBMITTED: "Submitted",
     JsaStatus.APPROVED: "Approved",
     JsaStatus.REJECTED: "Rejected",
@@ -101,19 +114,19 @@ DOCUMENT_TYPE_FAMILIES: dict[DocumentType, str] = {
 }
 
 
-def status_label(status: SubmitStatus | JsaStatus) -> str:
+def status_label(status: SubmitStatus | JsaStatus | RfiStatus) -> str:
     """Return the UPPERCASE badge string for a lifecycle status."""
     if isinstance(status, JsaStatus):
         return status.value.upper()
     return STATUS_LABELS[status]
 
 
-def status_family(status: SubmitStatus | JsaStatus) -> str:
+def status_family(status: SubmitStatus | JsaStatus | RfiStatus) -> str:
     """Return the color-family key (ns/info/ok/bad) for a lifecycle status."""
     return STATUS_FAMILIES[status]
 
 
-def status_hero_word(status: SubmitStatus | JsaStatus) -> str:
+def status_hero_word(status: SubmitStatus | JsaStatus | RfiStatus) -> str:
     """Return the sentence-case hero word for a lifecycle status."""
     return STATUS_HERO_WORDS[status]
 

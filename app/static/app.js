@@ -41,7 +41,7 @@ async function send_json(method, url, payload) {
 async function send_form(method, url, form) {
   const data = new FormData(form);
   for (const [name, value] of [...data.entries()]) {
-    if (value === "") {
+    if (value === "" || (value instanceof File && value.size === 0 && value.name === "")) {
       data.delete(name);
     }
   }
@@ -55,6 +55,8 @@ function json_payload(form) {
     const value = field.value.trim();
     if (value !== "" || field.required) {
       payload[field.name] = value;
+    } else if (field.dataset.nullIfBlank !== undefined) {
+      payload[field.name] = null;
     }
   }
   return payload;
@@ -395,20 +397,26 @@ async function delete_project(card) {
   }
 }
 
-async function delete_vdi_row(row) {
-  const name = row.dataset.vdiName;
-  const confirmed = window.confirm(
-    `Delete VDI "${name}"? This removes its revision history.`,
-  );
-  if (!confirmed) {
+async function delete_row(row) {
+  if (!window.confirm(row.dataset.deleteConfirm)) {
     return;
   }
-  const response = await fetch(`/api/vdi/${row.dataset.vdiId}`, {
-    method: "DELETE",
-  });
+  const error = document.querySelector("[data-delete-error]");
+  if (error) {
+    error.hidden = true;
+  }
+  const response = await fetch(row.dataset.deleteUrl, { method: "DELETE" });
   if (response.ok) {
     location.reload();
+    return;
   }
+  const message = await error_message_from(response);
+  if (error) {
+    error.textContent = message;
+    error.hidden = false;
+    return;
+  }
+  window.alert(message);
 }
 
 // ------------------------------------------------------------ user actions
@@ -559,6 +567,15 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  // Delete mode takes priority over inner edit controls, so an armed title
+  // confirms deletion instead of opening its edit modal.
+  const row_to_delete = event.target.closest("[data-delete-row]");
+  if (row_to_delete && row_to_delete.closest(".is-deleting")) {
+    event.preventDefault();
+    delete_row(row_to_delete);
+    return;
+  }
+
   const open_trigger = event.target.closest("[data-modal-open]");
   if (open_trigger) {
     const overlay = document.querySelector(
@@ -631,15 +648,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  // The whole VDI row is a link; while armed it deletes instead of navigating.
+  // The whole VDI row is a link; deletion was handled by the generic contract
+  // above, so this branch only keeps the normal navigation behavior.
   const vdi_row = event.target.closest("[data-vdi-row]");
   if (vdi_row) {
     event.preventDefault();
-    if (vdi_row.closest(".is-deleting")) {
-      delete_vdi_row(vdi_row);
-    } else {
-      window.location = vdi_row.dataset.href;
-    }
+    window.location = vdi_row.dataset.href;
   }
 });
 

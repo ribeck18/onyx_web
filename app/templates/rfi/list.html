@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% from "macros/badge.html" import status_badge %}
+{% from "macros/modal.html" import form_modal %}
+
+{% block title %}{{ project.name }} RFIs · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}">{{ project.project_number }}</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">RFIS</span>
+{% endblock %}
+
+{% block content %}
+<section class="project-detail-header">
+  <div>
+    <p class="detail-number">{{ project.project_number }}</p>
+    <h1 class="h1-detail">RFIs</h1>
+  </div>
+</section>
+
+<div class="gradient-rule"></div>
+
+<section class="section-header">
+  <p class="section-label">REQUESTS FOR INFORMATION</p>
+  <div class="header-actions">
+    {% if rfis %}
+    <button type="button" class="btn-ghost delete-toggle" data-delete-toggle="rfi-table">Delete</button>
+    {% endif %}
+    <button type="button"
+            class="btn-primary"
+            data-modal-open="rfi-modal"
+            data-mode="create"
+            data-title="New RFI"
+            data-submit-label="Create RFI"
+            data-method="POST"
+            data-url="/api/rfis">+ New RFI</button>
+  </div>
+</section>
+
+{% if rfis %}
+<table class="vdi-table" id="rfi-table">
+  <thead>
+    <tr>
+      <th class="col-name">TITLE</th>
+      <th class="col-rfi-number">RFI NUMBER</th>
+      <th class="col-reference">SPEC / DRAWING REFERENCE</th>
+      <th class="col-status">STATUS</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for rfi in rfis %}
+    <tr class="vdi-row"
+        data-rfi-row
+        data-row-href="/rfis/{{ rfi.id }}"
+        data-delete-row
+        data-delete-url="/api/rfis/{{ rfi.id }}"
+        data-delete-confirm="Delete RFI &quot;{{ rfi.rfi_number }}&quot;?"
+        data-rfi-id="{{ rfi.id }}"
+        data-rfi-number="{{ rfi.rfi_number }}"
+        data-rfi-title="{{ rfi.title }}">
+      <td class="col-name">
+        <button type="button"
+                class="table-edit-button"
+                data-modal-open="rfi-modal"
+                data-mode="edit"
+                data-title="Edit RFI"
+                data-submit-label="Save Changes"
+                data-method="PATCH"
+                data-url="/api/rfis/{{ rfi.id }}"
+                data-prefill='{{ {"rfi_number": rfi.rfi_number, "title": rfi.title, "spec_drawing_reference": rfi.spec_drawing_reference} | tojson }}'>{{ rfi.title }}</button>
+      </td>
+      <td class="col-rfi-number">{{ rfi.rfi_number }}</td>
+      <td class="col-reference">{{ rfi.spec_drawing_reference or "—" }}</td>
+      <td class="col-status">{{ status_badge(rfi.status) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="field-error" data-delete-error hidden></p>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">No RFIs yet.</p>
+  <p class="empty-sub">Add the first RFI to track project questions.</p>
+  <button type="button"
+          class="btn-primary"
+          data-modal-open="rfi-modal"
+          data-mode="create"
+          data-title="New RFI"
+          data-submit-label="Create RFI"
+          data-method="POST"
+          data-url="/api/rfis">+ New RFI</button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+{% call form_modal("rfi-modal", "New RFI", "Create RFI", "RFI number and title are required.") %}
+  <input type="hidden" name="project_id" value="{{ project.id }}">
+  <label class="field">
+    <span class="field-label">RFI Number <span class="req">*</span></span>
+    <input type="text" name="rfi_number" class="field-input" autocomplete="off" required>
+    <span class="field-error" data-field-error hidden></span>
+  </label>
+  <label class="field">
+    <span class="field-label">Title <span class="req">*</span></span>
+    <input type="text" name="title" class="field-input" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Spec / Drawing Reference</span>
+    <input type="text" name="spec_drawing_reference" class="field-input" autocomplete="off" data-null-if-blank>
+  </label>
+  <label class="field" data-create-only>
+    <span class="field-label">Notes</span>
+    <textarea name="notes" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+{% endblock %}

@@ -4,6 +4,8 @@ from app.models.project import Project
 from app.models.vdi import VendorDataItem
 from app.models.revision import Revision
 from app.models.project_doc import ProjectDoc
+from app.models.rfi import Rfi
+from app.models.rfi_revision import RfiRevision
 from app.models.doc_version import DocVersion
 from app.models.file import File
 from app.models.jsa import JSA
@@ -18,6 +20,8 @@ __all__ = [
     "VendorDataItem",
     "Revision",
     "ProjectDoc",
+    "Rfi",
+    "RfiRevision",
     "DocVersion",
     "File",
     "JSA",

@@ -48,6 +48,6 @@ async def update_project(
 
 
 async def delete_project(session: AsyncSession, project: Project) -> None:
-    """Delete a project; ORM cascade removes its VDIs and their Revisions."""
+    """Delete a project; ORM cascade removes its project-owned records."""
     await session.delete(project)
     await session.flush()

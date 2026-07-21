@@ -39,6 +39,10 @@
     Documents
     <span class="doc-pill-count">{{ document_count }}</span>
   </a>
+  <a class="doc-pill" href="/projects/{{ project.id }}/rfis">
+    RFIs
+    <span class="doc-pill-count">{{ rfi_count }}</span>
+  </a>
   <a class="doc-pill" href="/projects/{{ project.id }}/jsa">
     JSA
     {% set jsa_status = jsa.status.value if jsa else "not-started" %}
@@ -81,6 +85,9 @@
     {% for vdi in vdis %}
     <tr class="vdi-row"
         data-vdi-row
+        data-delete-row
+        data-delete-url="/api/vdi/{{ vdi.id }}"
+        data-delete-confirm="Delete VDI &quot;{{ vdi.name }}&quot;? This removes its revision history."
         data-vdi-id="{{ vdi.id }}"
         data-vdi-name="{{ vdi.name }}"
         data-href="/vdi/{{ vdi.id }}">

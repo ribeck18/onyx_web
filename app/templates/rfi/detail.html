@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% from "macros/badge.html" import status_badge %}
+{% from "macros/modal.html" import form_modal %}
+{% from "macros/preview.html" import file_pane %}
+
+{% set is_historical = historical | default(false) %}
+{% set view_revision = revision if is_historical else latest_revision %}
+{% set view_status = revision.status if is_historical else rfi.status %}
+{% set viewed_revision_id = view_revision.id if view_revision else none %}
+{% set preview_title = "REVISION FILE" if is_historical else "CURRENT FILE" %}
+{% set is_returned = view_status.value in ["approved", "rejected"] %}
+{% set status_value = rfi.status.value %}
+
+{% block title %}{{ rfi.rfi_number }} · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/">HOME</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}">{{ project.project_number }}</a>
+  <span class="crumb-sep">/</span>
+  <a class="crumb-link" href="/projects/{{ project.id }}/rfis">RFIS</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">{{ rfi.rfi_number | upper }}</span>
+{% endblock %}
+
+{% block vdi_tag %}<span class="vdi-tag">{{ rfi.rfi_number }}</span>{% endblock %}
+
+{% block banner %}
+{% if is_historical %}
+<div class="hist-banner">
+  <div class="hist-banner-inner">
+    <span class="hist-banner-glyph" aria-hidden="true">!</span>
+    <span class="hist-banner-text">VIEWING PAST REVISION — NOT THE CURRENT STATE OF THIS RFI.</span>
+    <a class="hist-banner-link" href="/rfis/{{ rfi.id }}">RETURN TO CURRENT &#8617;</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% set rev = view_revision %}
+<section class="vdi-hero">
+  <div class="vdi-hero-main">
+    <p class="eyebrow">REQUEST FOR INFORMATION · {{ rfi.rfi_number }}</p>
+    <h1 class="h1-vdi">{{ rfi.title }}</h1>
+  </div>
+  <div class="vdi-hero-status">
+    <p class="eyebrow">STATUS</p>
+    <div class="hero-status fam-{{ view_status | status_family }}">
+      <span class="hero-dot" aria-hidden="true"></span>
+      <span class="hero-word">{{ view_status | status_hero_word }}</span>
+    </div>
+    {% if not is_historical %}
+    <button type="button"
+            class="btn-ghost vdi-edit-btn"
+            data-modal-open="rfi-edit-modal"
+            data-mode="edit"
+            data-title="Edit RFI"
+            data-submit-label="Save Changes"
+            data-method="PATCH"
+            data-url="/api/rfis/{{ rfi.id }}"
+            data-prefill='{{ {"rfi_number": rfi.rfi_number, "title": rfi.title, "spec_drawing_reference": rfi.spec_drawing_reference} | tojson }}'>Edit</button>
+    {% endif %}
+  </div>
+</section>
+
+<div class="gradient-rule"></div>
+
+<section class="vdi-spec">
+  <p class="section-label">RFI DETAILS</p>
+  <div class="spec-cells">
+    <div class="spec-cell">
+      <span class="spec-label">RFI NUMBER</span>
+      <span class="spec-value">{{ rfi.rfi_number }}</span>
+    </div>
+    <div class="spec-cell">
+      <span class="spec-label">SPEC / DWG REF</span>
+      <span class="spec-value">{{ rfi.spec_drawing_reference or "—" }}</span>
+    </div>
+  </div>
+</section>
+
+<div class="plain-rule"></div>
+
+<section class="lifecycle-row">
+  <p class="section-label lifecycle-label">LIFECYCLE</p>
+  {% if is_historical %}
+  <button type="button" class="lifecycle-btn" disabled>Submit</button>
+  <p class="lifecycle-note">ACTIONS AVAILABLE ONLY ON CURRENT RFI.</p>
+  {% elif status_value == "not_started" %}
+  <button type="button"
+          class="lifecycle-btn lifecycle-accent"
+          data-modal-open="submit-modal"
+          data-title="Submit RFI"
+          data-intro="Submit the first revision of {{ rfi.rfi_number }}."
+          data-submit-label="Submit"
+          data-method="POST"
+          data-url="/api/rfis/{{ rfi.id }}/submit">Submit</button>
+  <p class="lifecycle-note">UPLOAD THE FIRST REVISION AND SEND TO BUYER.</p>
+  {% elif status_value in ["approved", "rejected"] %}
+  <button type="button"
+          class="lifecycle-btn {% if status_value == "rejected" %}lifecycle-bad{% else %}lifecycle-accent{% endif %}"
+          data-modal-open="submit-modal"
+          data-title="Revise RFI"
+          data-intro="Upload a new revision for {{ rfi.rfi_number }}."
+          data-submit-label="Resubmit"
+          data-method="POST"
+          data-url="/api/rfis/{{ rfi.id }}/submit">Revise</button>
+  <p class="lifecycle-note">UPLOAD A NEW REVISION AND RESUBMIT.</p>
+  {% else %}
+  <button type="button"
+          class="lifecycle-btn lifecycle-info"
+          data-modal-open="return-modal"
+          data-title="Record Buyer Return"
+          data-intro="Record the buyer's decision for {{ rfi.rfi_number }}."
+          data-submit-label="Record Return"
+          data-method="POST"
+          data-url="/api/rfis/{{ rfi.id }}/return">Return</button>
+  <p class="lifecycle-note">RECORD THE BUYER'S DECISION FOR THIS REVISION.</p>
+  {% endif %}
+</section>
+
+<div class="plain-rule"></div>
+
+<section class="vdi-columns">
+  <div class="vdi-col-left">
+    {% if rev and rev.comments %}
+    <div class="buyer-comments">
+      <p class="buyer-comments-label">BUYER COMMENTS</p>
+      <p class="buyer-comments-text">{{ rev.comments }}</p>
+    </div>
+    {% endif %}
+
+    <div class="preview">
+      {% if rev is none %}
+      <p class="preview-title">{{ preview_title }}</p>
+      <div class="preview-empty">
+        <p class="preview-empty-title">This RFI has not been submitted.</p>
+        <p class="preview-empty-note">SUBMIT THE FIRST REVISION TO BEGIN THE LIFECYCLE</p>
+      </div>
+      {% else %}
+        {% set show_returned = is_returned and rev.return_file is not none %}
+        {% set active = "returned" if show_returned else "submitted" %}
+        {% set active_file = rev.return_file if show_returned else rev.submit_file %}
+        <div class="preview-head">
+          <span class="preview-title">{{ preview_title }}</span>
+          {% if show_returned %}
+          <div class="preview-tabs">
+            <button type="button"
+                    class="preview-tab"
+                    data-preview-tab="submitted"
+                    data-filename="{{ rev.submit_file.original_name }}"
+                    data-file-url="/api/files/{{ rev.submit_file.id }}">SUBMITTED</button>
+            <button type="button"
+                    class="preview-tab is-active"
+                    data-preview-tab="returned"
+                    data-filename="{{ rev.return_file.original_name }}"
+                    data-file-url="/api/files/{{ rev.return_file.id }}">RETURNED</button>
+          </div>
+          {% endif %}
+          <span class="preview-filename" data-preview-filename>{{ active_file.original_name }}</span>
+          <a class="preview-open" data-preview-open href="/api/files/{{ active_file.id }}?download=1">DOWNLOAD</a>
+        </div>
+        <div class="preview-pane" data-preview-panel="submitted" {% if active != "submitted" %}hidden{% endif %}>
+          {{ file_pane(rev.submit_file) }}
+        </div>
+        {% if show_returned %}
+        <div class="preview-pane" data-preview-panel="returned" {% if active != "returned" %}hidden{% endif %}>
+          {{ file_pane(rev.return_file) }}
+        </div>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <div class="notes"{% if not is_historical %} data-notes data-notes-url="/api/rfis/{{ rfi.id }}"{% endif %}>
+      <div class="notes-head">
+        <p class="section-label">NOTES</p>
+        {% if is_historical %}<span class="notes-readonly">READ-ONLY</span>{% endif %}
+        {% if not is_historical %}<span class="notes-saved" data-notes-saved hidden>SAVED &#10003;</span>{% endif %}
+      </div>
+      <textarea class="notes-text" rows="4" data-notes-input {% if is_historical %}disabled{% endif %}>{{ rfi.notes or "" }}</textarea>
+      {% if not is_historical %}
+      <button type="button" class="save-notes" data-notes-save disabled>Save notes</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="vdi-col-right">
+    <p class="section-label">REVISION LOG</p>
+    {% if revisions %}
+    <div class="timeline">
+      {% for timeline_revision in revisions %}
+      {% set is_latest = loop.last %}
+      {% set is_viewed = timeline_revision.id == viewed_revision_id %}
+      <a class="timeline-entry"
+         href="{% if is_latest %}/rfis/{{ rfi.id }}{% else %}/rfis/{{ rfi.id }}/revisions/{{ timeline_revision.id }}{% endif %}">
+        <span class="timeline-node fam-{{ timeline_revision.status | status_family }}{% if is_viewed %} is-current{% endif %}" aria-hidden="true"></span>
+        <div class="timeline-row">
+          <span class="timeline-rev">REV {{ timeline_revision.revision_number }}</span>
+          {% if is_viewed %}<span class="timeline-current-tag">CURRENT</span>{% endif %}
+          {{ status_badge(timeline_revision.status) }}
+        </div>
+        <p class="timeline-dates">
+          SUB {{ timeline_revision.submitted_at.strftime("%Y-%m-%d") }}
+          {% if timeline_revision.returned_at %}· RET {{ timeline_revision.returned_at.strftime("%Y-%m-%d") }}{% else %}· AWAITING RETURN{% endif %}
+        </p>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="timeline-empty">NO REVISIONS YET.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block modals %}
+{% if not is_historical %}
+{% call form_modal("rfi-edit-modal", "Edit RFI", "Save Changes", "RFI number and title are required.") %}
+  {% if rfi_number_editable %}
+  <label class="field">
+    <span class="field-label">RFI Number <span class="req">*</span></span>
+    <input type="text" name="rfi_number" class="field-input" autocomplete="off" required>
+    <span class="field-error" data-field-error hidden></span>
+  </label>
+  {% endif %}
+  <label class="field">
+    <span class="field-label">Title <span class="req">*</span></span>
+    <input type="text" name="title" class="field-input" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Spec / Drawing Reference</span>
+    <input type="text" name="spec_drawing_reference" class="field-input" autocomplete="off" data-null-if-blank>
+  </label>
+{% endcall %}
+
+{% call form_modal("submit-modal", "Submit RFI", "Submit", "A file is required.", "Submit the first revision.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Submitted File <span class="req">*</span></span>
+    <input type="file" name="file" class="field-file" required>
+  </label>
+  <p class="modal-helper">Uploads as a new revision and moves this RFI to <strong>Submitted</strong>.</p>
+{% endcall %}
+
+{% call form_modal("return-modal", "Record Buyer Return", "Record Return", "A decision is required.", "Record the buyer's decision for this revision.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Decision <span class="req">*</span></span>
+    <select name="decision" class="field-input" required>
+      <option value="" disabled selected>Select…</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected</option>
+    </select>
+  </label>
+  <label class="field">
+    <span class="field-label">Returned File</span>
+    <input type="file" name="file" class="field-file">
+  </label>
+  <label class="field">
+    <span class="field-label">Buyer Comments</span>
+    <textarea name="comments" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+{% endif %}
+{% endblock %}
