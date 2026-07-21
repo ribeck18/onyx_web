@@ -21,7 +21,14 @@ One submitted JSA package and its approval decision. The submitted package and a
 _Avoid_: VDI revision
 
 ### Project Document (ProjectDoc)
-A document associated with a Project that we **receive and record** but do not submit or get approved — drawings, specifications, special conditions, contracts, the vendor data schedule sheet, addendums, and the like. Contrast with a Vendor Data Item, which we submit to the buyer for approval. Explicitly excludes RFIs, RECs, and JSAs (future, separately-modeled features). One ProjectDoc represents one logical document; a 40-page drawing set is a single document stored as one file per version. Carries our own **label** (a required, non-unique name we assign — e.g. "E-101", "Contract"), set once and reused across all its versions, and a required document **type**. Has no lifecycle/status of its own.
+A document associated with a Project that we **receive and record** but do not submit or get approved — drawings, specifications, special conditions, contracts, the vendor data schedule sheet, addendums, and the like. Contrast with a Vendor Data Item, which we submit to the buyer for approval. Explicitly excludes RFIs, RECs, and JSAs, which are separately modeled features. One ProjectDoc represents one logical document; a 40-page drawing set is a single document stored as one file per version. Carries our own **label** (a required, non-unique name we assign — e.g. "E-101", "Contract"), set once and reused across all its versions, and a required document **type**. Has no lifecycle/status of its own.
+
+### Request for Information (RFI)
+A project-scoped question submitted to the buyer to resolve missing, conflicting, or unclear project information. Identified within a Project by a required, unique, free-form RFI Number, which remains immutable after first submission, and a required title; its lifecycle is Not Started, Submitted, Approved, or Rejected. Both Approved and Rejected RFIs may be resubmitted as a new RFI Revision.
+_Avoid_: clarification request
+
+### RFI Revision
+One submitted RFI and its buyer decision. It has one submitted file, an optional buyer return file, and optional buyer comments; it is created only by submitting or resubmitting its RFI.
 
 ### Document Version (DocVersion)
 An internally-numbered version of a Project Document — version control, not a submittal. Each time we receive an updated file we record a new DocVersion; the file always lives on the version, never on the Project Document itself. Each version carries an auto-incremented `version_number` (1, 2, 3…) that **we** generate as `max + 1` per document — the issuer does not assign it. Its human-facing name "{label} Version {n}" is composed for display from the parent's label, not stored. Distinct from a (VDI) Revision: no submit/return cycle, no return code, no external assignment. The current version is simply the most recently created one; the Project Document's updated date tracks that version's creation. A Project Document can never have zero versions — creating one always records Version 1 with its file.
