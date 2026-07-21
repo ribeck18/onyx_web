@@ -42,6 +42,7 @@ async def test_live_rfi_detail_shows_submission_preview_notes_and_timeline(
     assert f'data-notes-url="/api/rfis/{rfi_id}"' in body
     assert 'href="/projects/%s/rfis"' % project.id in body
     assert 'name="rfi_number"' not in body
+    assert 'data-null-if-blank' in body
     assert 'data-url="/api/rfis/%s/submit"' % rfi_id not in body
 
 

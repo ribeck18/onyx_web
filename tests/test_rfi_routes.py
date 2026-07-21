@@ -38,6 +38,11 @@ async def test_rfi_crud_and_validation(
         "/api/rfis", json=rfi_payload(project_id, rfi_number="")
     )
     assert empty.status_code == 422
+    for field in ("rfi_number", "title"):
+        whitespace = await client.post(
+            "/api/rfis", json=rfi_payload(project_id, **{field: "  \t  "})
+        )
+        assert whitespace.status_code == 422
 
     created = await client.post(
         "/api/rfis",
@@ -71,6 +76,16 @@ async def test_rfi_crud_and_validation(
     assert updated.json()["title"] == "Clarify finished floor elevation"
     assert updated.json()["notes"] == "Urgent"
     assert updated.json()["status"] == "not_started"
+
+    cleared = await client.patch(
+        f"/api/rfis/{rfi_id}", json={"spec_drawing_reference": None}
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["spec_drawing_reference"] is None
+
+    for field in ("rfi_number", "title"):
+        null_update = await client.patch(f"/api/rfis/{rfi_id}", json={field: None})
+        assert null_update.status_code == 422
 
     deleted = await client.delete(f"/api/rfis/{rfi_id}")
     assert deleted.status_code == 204

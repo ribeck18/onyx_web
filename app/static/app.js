@@ -55,6 +55,8 @@ function json_payload(form) {
     const value = field.value.trim();
     if (value !== "" || field.required) {
       payload[field.name] = value;
+    } else if (field.dataset.nullIfBlank !== undefined) {
+      payload[field.name] = null;
     }
   }
   return payload;
@@ -399,10 +401,22 @@ async function delete_row(row) {
   if (!window.confirm(row.dataset.deleteConfirm)) {
     return;
   }
+  const error = document.querySelector("[data-delete-error]");
+  if (error) {
+    error.hidden = true;
+  }
   const response = await fetch(row.dataset.deleteUrl, { method: "DELETE" });
   if (response.ok) {
     location.reload();
+    return;
   }
+  const message = await error_message_from(response);
+  if (error) {
+    error.textContent = message;
+    error.hidden = false;
+    return;
+  }
+  window.alert(message);
 }
 
 // ------------------------------------------------------------ user actions
@@ -553,6 +567,15 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  // Delete mode takes priority over inner edit controls, so an armed title
+  // confirms deletion instead of opening its edit modal.
+  const row_to_delete = event.target.closest("[data-delete-row]");
+  if (row_to_delete && row_to_delete.closest(".is-deleting")) {
+    event.preventDefault();
+    delete_row(row_to_delete);
+    return;
+  }
+
   const open_trigger = event.target.closest("[data-modal-open]");
   if (open_trigger) {
     const overlay = document.querySelector(
@@ -612,15 +635,6 @@ document.addEventListener("click", (event) => {
   if (card && card.closest(".is-deleting")) {
     event.preventDefault();
     delete_project(card);
-    return;
-  }
-
-  // A generic delete-row contract keeps VDI and RFI list delete mode on the
-  // same small interaction path while preserving each row's own confirmation.
-  const row_to_delete = event.target.closest("[data-delete-row]");
-  if (row_to_delete && row_to_delete.closest(".is-deleting")) {
-    event.preventDefault();
-    delete_row(row_to_delete);
     return;
   }
 

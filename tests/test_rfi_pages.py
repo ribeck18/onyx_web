@@ -70,6 +70,7 @@ async def test_rfi_list_empty_state_and_create_contract(
     assert 'name="rfi_number"' in body
     assert 'name="title"' in body
     assert 'name="spec_drawing_reference"' in body
+    assert 'data-null-if-blank' in body
     assert 'name="notes"' in body
     assert f'value="{project_id}"' in body
     assert 'data-url="/api/rfis"' in body
@@ -88,6 +89,7 @@ async def test_rfi_list_is_ordered_and_has_edit_delete_contract(
             project_id,
             rfi_number="RFI-010",
             title="Later question",
+            notes="Internal list note",
         ),
     )
     first = await client.post(
@@ -109,9 +111,12 @@ async def test_rfi_list_is_ordered_and_has_edit_delete_contract(
     assert "D-101" in body
     assert "NOT STARTED" in body
     assert 'data-delete-toggle="rfi-table"' in body
+    assert 'data-delete-error' in body
     assert f'data-delete-url="/api/rfis/{first.json()["id"]}"' in body
     assert f'data-url="/api/rfis/{second.json()["id"]}"' in body
     assert 'data-method="PATCH"' in body
+    assert 'data-create-only' in body
+    assert "Internal list note" not in body
 
 
 async def test_home_open_items_remains_vdi_only_after_rfi_creation(

@@ -69,7 +69,7 @@
                 data-submit-label="Save Changes"
                 data-method="PATCH"
                 data-url="/api/rfis/{{ rfi.id }}"
-                data-prefill='{{ {"rfi_number": rfi.rfi_number, "title": rfi.title, "spec_drawing_reference": rfi.spec_drawing_reference, "notes": rfi.notes} | tojson }}'>{{ rfi.title }}</button>
+                data-prefill='{{ {"rfi_number": rfi.rfi_number, "title": rfi.title, "spec_drawing_reference": rfi.spec_drawing_reference} | tojson }}'>{{ rfi.title }}</button>
       </td>
       <td class="col-rfi-number">{{ rfi.rfi_number }}</td>
       <td class="col-reference">{{ rfi.spec_drawing_reference or "—" }}</td>
@@ -78,6 +78,7 @@
     {% endfor %}
   </tbody>
 </table>
+<p class="field-error" data-delete-error hidden></p>
 {% else %}
 <div class="empty-state">
   <p class="empty-title">No RFIs yet.</p>
@@ -108,9 +109,9 @@
   </label>
   <label class="field">
     <span class="field-label">Spec / Drawing Reference</span>
-    <input type="text" name="spec_drawing_reference" class="field-input" autocomplete="off">
+    <input type="text" name="spec_drawing_reference" class="field-input" autocomplete="off" data-null-if-blank>
   </label>
-  <label class="field">
+  <label class="field" data-create-only>
     <span class="field-label">Notes</span>
     <textarea name="notes" class="field-input field-textarea" rows="3"></textarea>
   </label>
