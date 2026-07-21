@@ -11,6 +11,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.jsa import JSA
     from app.models.project_doc import ProjectDoc
+    from app.models.rfi import Rfi
     from app.models.vdi import VendorDataItem
 
 
@@ -41,6 +42,11 @@ class Project(Base):
     )
     project_docs: Mapped[list["ProjectDoc"]] = relationship(
         "ProjectDoc",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+    rfis: Mapped[list["Rfi"]] = relationship(
+        "Rfi",
         back_populates="project",
         cascade="all, delete-orphan",
     )

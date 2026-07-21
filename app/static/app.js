@@ -395,17 +395,11 @@ async function delete_project(card) {
   }
 }
 
-async function delete_vdi_row(row) {
-  const name = row.dataset.vdiName;
-  const confirmed = window.confirm(
-    `Delete VDI "${name}"? This removes its revision history.`,
-  );
-  if (!confirmed) {
+async function delete_row(row) {
+  if (!window.confirm(row.dataset.deleteConfirm)) {
     return;
   }
-  const response = await fetch(`/api/vdi/${row.dataset.vdiId}`, {
-    method: "DELETE",
-  });
+  const response = await fetch(row.dataset.deleteUrl, { method: "DELETE" });
   if (response.ok) {
     location.reload();
   }
@@ -621,6 +615,15 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  // A generic delete-row contract keeps VDI and RFI list delete mode on the
+  // same small interaction path while preserving each row's own confirmation.
+  const row_to_delete = event.target.closest("[data-delete-row]");
+  if (row_to_delete && row_to_delete.closest(".is-deleting")) {
+    event.preventDefault();
+    delete_row(row_to_delete);
+    return;
+  }
+
   // Any row carrying data-row-href navigates as a whole; inner links and
   // buttons keep their own behavior, so only bare-row clicks fall through.
   const link_row = event.target.closest("[data-row-href]");
@@ -631,15 +634,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  // The whole VDI row is a link; while armed it deletes instead of navigating.
+  // The whole VDI row is a link; deletion was handled by the generic contract
+  // above, so this branch only keeps the normal navigation behavior.
   const vdi_row = event.target.closest("[data-vdi-row]");
   if (vdi_row) {
     event.preventDefault();
-    if (vdi_row.closest(".is-deleting")) {
-      delete_vdi_row(vdi_row);
-    } else {
-      window.location = vdi_row.dataset.href;
-    }
+    window.location = vdi_row.dataset.href;
   }
 });
 

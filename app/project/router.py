@@ -66,7 +66,7 @@ async def delete_project(
     project_id: int,
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Delete a project and all its VDIs and Revisions."""
+    """Delete a project and its project-owned records."""
     project = await service.get_project(session, project_id)
     if project is None:
         raise HTTPException(

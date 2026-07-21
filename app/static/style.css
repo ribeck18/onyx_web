@@ -1269,6 +1269,8 @@ a { color: inherit; text-decoration: none; }
 .vdi-table .col-submittal { width: 140px; }
 .vdi-table .col-code { width: 70px; }
 .vdi-table .col-status { width: 200px; }
+.vdi-table .col-rfi-number { width: 150px; }
+.vdi-table .col-reference { width: 280px; }
 
 .vdi-table tbody td {
   padding: 14px;
@@ -1286,6 +1288,18 @@ a { color: inherit; text-decoration: none; }
   font-weight: 500;
   text-decoration: none;
 }
+
+.table-edit-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+.table-edit-button:hover { color: var(--accent); }
 
 .col-item { font-family: 'JetBrains Mono', monospace; color: var(--muted); }
 
@@ -1305,7 +1319,8 @@ a { color: inherit; text-decoration: none; }
   box-shadow: inset 3px 0 0 var(--bad);
   background: var(--bad-soft);
 }
-.is-deleting .vdi-row-link { color: var(--bad-text); }
+.is-deleting .vdi-row-link,
+.is-deleting .table-edit-button { color: var(--bad-text); }
 
 /* ---------------------------------------------------------------- users screen */
 
