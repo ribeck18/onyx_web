@@ -4,6 +4,8 @@ from app.models.project import Project
 from app.models.vdi import VendorDataItem
 from app.models.revision import Revision
 from app.models.project_doc import ProjectDoc
+from app.models.library_document import LibraryDocument
+from app.models.library_document_version import LibraryDocumentVersion
 from app.models.rfi import Rfi
 from app.models.rfi_revision import RfiRevision
 from app.models.doc_version import DocVersion
@@ -20,6 +22,8 @@ __all__ = [
     "VendorDataItem",
     "Revision",
     "ProjectDoc",
+    "LibraryDocument",
+    "LibraryDocumentVersion",
     "Rfi",
     "RfiRevision",
     "DocVersion",

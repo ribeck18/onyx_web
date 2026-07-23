@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "macros/modal.html" import form_modal %}
+
+{% block title %}Library Documents · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <span class="crumb-current">LIBRARY</span>
+{% endblock %}
+
+{% block content %}
+<section class="page-header gallery-header">
+  <div>
+    <p class="eyebrow">COMPANY-WIDE</p>
+    <h1 class="h1-home">Library Documents</h1>
+  </div>
+  <div class="header-actions">
+    <button type="button"
+            class="btn-primary"
+            data-modal-open="library-document-modal"
+            data-mode="create"
+            data-title="Add Library Document"
+            data-submit-label="Add Library Document"
+            data-method="POST"
+            data-url="/api/library-documents">+ Add Library Document</button>
+  </div>
+</section>
+
+<div class="header-rule"></div>
+
+{% if library_documents %}
+<table class="vdi-table" id="library-document-table">
+  <thead>
+    <tr>
+      <th class="col-name">TITLE</th>
+      <th class="col-version">CURRENT VERSION</th>
+      <th class="col-updated">UPDATED</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for library_document in library_documents %}
+    <tr class="vdi-row" data-row-href="/library-documents/{{ library_document.id }}">
+      <td class="col-name">
+        <span class="vdi-row-link">{{ library_document.title }}</span>
+      </td>
+      <td class="col-version">
+        <span class="cell-value">Version {{ library_document.current_version.version_number }}</span>
+      </td>
+      <td class="col-updated">
+        <span class="cell-value">{{ library_document.updated_at.strftime("%Y-%m-%d") }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">No library documents yet.</p>
+  <p class="empty-sub">Add reusable company documents and templates here.</p>
+  <button type="button"
+          class="btn-primary"
+          data-modal-open="library-document-modal"
+          data-mode="create"
+          data-title="Add Library Document"
+          data-submit-label="Add Library Document"
+          data-method="POST"
+          data-url="/api/library-documents">+ Add Library Document</button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+{% call form_modal("library-document-modal", "Add Library Document", "Add Library Document", "Title and file are required.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Title <span class="req">*</span></span>
+    <input type="text" name="title" class="field-input" required autocomplete="off">
+  </label>
+  <label class="field">
+    <span class="field-label">Document File <span class="req">*</span></span>
+    <input type="file" name="file" class="field-file" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea name="description" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+  <label class="field">
+    <span class="field-label">Version Note</span>
+    <textarea name="version_note" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+{% endblock %}
