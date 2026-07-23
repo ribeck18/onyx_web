@@ -84,5 +84,10 @@ async def test_detail_page_keeps_metadata_editable_and_old_notes_read_only(
         f'/api/library-documents/{document["id"]}/versions/'
         f'{document["current_version"]["id"]}"'
     ) not in body
-    assert 'data-method="DELETE"' in body
-    assert 'data-redirect="/library"' in body
+    delete_start = body.index('data-modal-open="delete-library-document-modal"')
+    delete_button = body[delete_start : body.index(">Delete</button>", delete_start)]
+    assert 'data-user-action' not in delete_button
+    assert 'data-method="DELETE"' in delete_button
+    assert 'data-redirect="/library"' in delete_button
+    assert 'data-modal="delete-library-document-modal"' in body
+    assert 'data-modal-error hidden' in body

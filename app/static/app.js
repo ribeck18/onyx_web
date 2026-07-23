@@ -125,6 +125,7 @@ function configure_modal(overlay, trigger) {
 
   form.dataset.method = trigger.dataset.method || "POST";
   form.dataset.url = trigger.dataset.url || "";
+  form.dataset.redirect = trigger.dataset.redirect || "";
   if (title && trigger.dataset.title) {
     title.textContent = trigger.dataset.title;
   }
@@ -312,7 +313,11 @@ async function submit_modal_form(form) {
       ? await send_form(form.dataset.method, form.dataset.url, form)
       : await send_json(form.dataset.method, form.dataset.url, json_payload(form));
   if (response.ok) {
-    location.reload();
+    if (form.dataset.redirect) {
+      location.assign(form.dataset.redirect);
+    } else {
+      location.reload();
+    }
     return;
   }
   set_modal_pending(form, false);

@@ -54,11 +54,12 @@
           data-prefill='{{ {"version_note": current_version.version_note} | tojson }}'>Edit Current Note</button>
   <button type="button"
           class="btn-ghost"
-          data-user-action
+          data-modal-open="delete-library-document-modal"
+          data-title="Delete Library Document"
+          data-submit-label="Delete"
           data-method="DELETE"
           data-url="/api/library-documents/{{ library_document.id }}"
-          data-redirect="/library"
-          data-confirm="Delete {{ library_document.title }} and all version history? This cannot be undone.">Delete</button>
+          data-redirect="/library">Delete</button>
 </div>
 
 <section class="vdi-columns">
@@ -110,6 +111,10 @@
 {% endblock %}
 
 {% block modals %}
+{% call form_modal("delete-library-document-modal", "Delete Library Document", "Delete") %}
+  <p>Delete {{ library_document.title }} and all version history? This cannot be undone.</p>
+{% endcall %}
+
 {% call form_modal("library-document-modal", "Edit Library Document", "Save", "Title is required.") %}
   <label class="field">
     <span class="field-label">Title <span class="req">*</span></span>
