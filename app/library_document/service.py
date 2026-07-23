@@ -73,6 +73,45 @@ async def add_version(
     return library_document_version
 
 
+async def update_library_document(
+    session: AsyncSession,
+    library_document: LibraryDocument,
+    title: str | None = None,
+    description: str | None = None,
+    update_description: bool = False,
+) -> LibraryDocument:
+    """Apply supplied Library Document metadata and flush."""
+    if title is not None:
+        library_document.title = title
+    if update_description:
+        library_document.description = description
+    library_document.updated_at = datetime.now(timezone.utc)
+    await session.flush()
+    return library_document
+
+
+async def update_current_version_note(
+    session: AsyncSession,
+    library_document_version: LibraryDocumentVersion,
+    version_note: str | None,
+) -> LibraryDocumentVersion:
+    """Apply an editable Version Note to the current version and flush."""
+    library_document_version.version_note = version_note
+    await session.flush()
+    return library_document_version
+
+
+async def delete_library_document(
+    session: AsyncSession,
+    library_document: LibraryDocument,
+) -> None:
+    """Delete a Library Document, its versions, and their stored file records."""
+    for library_document_version in library_document.versions:
+        await session.delete(library_document_version.file)
+    await session.delete(library_document)
+    await session.flush()
+
+
 async def get_versions(
     session: AsyncSession,
     library_document_id: int,

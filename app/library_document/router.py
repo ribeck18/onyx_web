@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from anyio.to_thread import run_sync
 from fastapi import (
     APIRouter,
     Depends,
@@ -19,7 +20,9 @@ from app.file.dependencies import get_storage_root
 from app.library_document import service
 from app.library_document.schema import (
     LibraryDocumentRead,
+    LibraryDocumentUpdate,
     LibraryDocumentVersionRead,
+    LibraryDocumentVersionUpdate,
 )
 
 router = APIRouter(prefix="/library-documents", tags=["library-documents"])
@@ -88,6 +91,112 @@ async def add_library_document_version(
     )
     await session.commit()
     return LibraryDocumentVersionRead.model_validate(library_document_version)
+
+
+@router.patch("/{library_document_id}", response_model=LibraryDocumentRead)
+async def update_library_document(
+    library_document_id: int,
+    data: LibraryDocumentUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> LibraryDocumentRead:
+    """Update document metadata without creating a version."""
+    library_document = await service.get_library_document(
+        session,
+        library_document_id,
+    )
+    if library_document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Library document not found",
+        )
+    supplied = data.model_dump(exclude_unset=True)
+    title = supplied.get("title")
+    if title is not None:
+        title = title.strip()
+        if not title:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Title must not be blank",
+            )
+    library_document = await service.update_library_document(
+        session,
+        library_document,
+        title=title,
+        description=supplied.get("description"),
+        update_description="description" in supplied,
+    )
+    await session.commit()
+    return LibraryDocumentRead.model_validate(library_document)
+
+
+@router.patch(
+    "/{library_document_id}/versions/{version_id}",
+    response_model=LibraryDocumentVersionRead,
+)
+async def update_library_document_version(
+    library_document_id: int,
+    version_id: int,
+    data: LibraryDocumentVersionUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> LibraryDocumentVersionRead:
+    """Update the Version Note only while the version remains current."""
+    library_document = await service.get_library_document_for_update(
+        session,
+        library_document_id,
+    )
+    if library_document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Library document not found",
+        )
+    library_document_version = await service.get_version(
+        session,
+        library_document_id,
+        version_id,
+    )
+    if library_document_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Library document version not found",
+        )
+    if library_document_version.id != library_document.current_version.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only the current version's note can be edited",
+        )
+    library_document_version = await service.update_current_version_note(
+        session,
+        library_document_version,
+        data.version_note,
+    )
+    await session.commit()
+    return LibraryDocumentVersionRead.model_validate(library_document_version)
+
+
+@router.delete("/{library_document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_library_document(
+    library_document_id: int,
+    session: AsyncSession = Depends(get_session),
+    storage_root: Path = Depends(get_storage_root),
+) -> None:
+    """Irreversibly delete a Library Document and every version."""
+    library_document = await service.get_library_document_for_update(
+        session,
+        library_document_id,
+    )
+    if library_document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Library document not found",
+        )
+    stored_paths = [
+        library_document_version.file.stored_path
+        for library_document_version in library_document.versions
+    ]
+    await service.delete_library_document(session, library_document)
+    await session.commit()
+    for stored_path in stored_paths:
+        await run_sync(lambda: (storage_root / stored_path).unlink(missing_ok=True))
 
 
 @router.get(

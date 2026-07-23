@@ -27,6 +27,15 @@
 
 <div class="doc-actions">
   <button type="button"
+          class="btn-ghost"
+          data-modal-open="library-document-modal"
+          data-mode="edit"
+          data-title="Edit Library Document"
+          data-submit-label="Save"
+          data-method="PATCH"
+          data-url="/api/library-documents/{{ library_document.id }}"
+          data-prefill='{{ {"title": library_document.title, "description": library_document.description} | tojson }}'>Edit Details</button>
+  <button type="button"
           class="btn-primary"
           data-modal-open="version-modal"
           data-mode="create"
@@ -34,6 +43,22 @@
           data-submit-label="Add Version"
           data-method="POST"
           data-url="/api/library-documents/{{ library_document.id }}/versions">+ Add Version</button>
+  <button type="button"
+          class="btn-ghost"
+          data-modal-open="version-note-modal"
+          data-mode="edit"
+          data-title="Edit Version Note"
+          data-submit-label="Save"
+          data-method="PATCH"
+          data-url="/api/library-documents/{{ library_document.id }}/versions/{{ current_version.id }}"
+          data-prefill='{{ {"version_note": current_version.version_note} | tojson }}'>Edit Current Note</button>
+  <button type="button"
+          class="btn-ghost"
+          data-user-action
+          data-method="DELETE"
+          data-url="/api/library-documents/{{ library_document.id }}"
+          data-redirect="/library"
+          data-confirm="Delete {{ library_document.title }} and all version history? This cannot be undone.">Delete</button>
 </div>
 
 <section class="vdi-columns">
@@ -85,6 +110,24 @@
 {% endblock %}
 
 {% block modals %}
+{% call form_modal("library-document-modal", "Edit Library Document", "Save", "Title is required.") %}
+  <label class="field">
+    <span class="field-label">Title <span class="req">*</span></span>
+    <input type="text" name="title" class="field-input" required autocomplete="off">
+  </label>
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea name="description" class="field-input field-textarea" rows="3" data-null-if-blank></textarea>
+  </label>
+{% endcall %}
+
+{% call form_modal("version-note-modal", "Edit Version Note", "Save") %}
+  <label class="field">
+    <span class="field-label">Version Note</span>
+    <textarea name="version_note" class="field-input field-textarea" rows="3" data-null-if-blank></textarea>
+  </label>
+{% endcall %}
+
 {% call form_modal("version-modal", "Add Version", "Add Version", "A file is required.", multipart=true) %}
   <label class="field">
     <span class="field-label">Version File <span class="req">*</span></span>

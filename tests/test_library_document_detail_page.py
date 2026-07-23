@@ -55,3 +55,34 @@ async def test_detail_page_returns_404_for_unknown_document(client: AsyncClient)
     response = await client.get("/library-documents/999")
 
     assert response.status_code == 404
+
+
+async def test_detail_page_keeps_metadata_editable_and_old_notes_read_only(
+    client: AsyncClient,
+) -> None:
+    """Only the newest Version Note has an edit control; metadata is independent."""
+    document = await create_library_document(client)
+    current_version = await add_library_document_version(client, document["id"])
+
+    update_response = await client.patch(
+        f"/api/library-documents/{document['id']}",
+        json={"title": "Renamed Mix Design"},
+    )
+    response = await client.get(f"/library-documents/{document['id']}")
+
+    assert update_response.status_code == 200
+    assert response.status_code == 200
+    body = response.text
+    assert "Renamed Mix Design" in body
+    assert f'data-url="/api/library-documents/{document["id"]}"' in body
+    assert 'data-prefill=' in body
+    assert (
+        f'data-url="/api/library-documents/{document["id"]}/versions/'
+        f'{current_version["id"]}"'
+    ) in body
+    assert (
+        f'/api/library-documents/{document["id"]}/versions/'
+        f'{document["current_version"]["id"]}"'
+    ) not in body
+    assert 'data-method="DELETE"' in body
+    assert 'data-redirect="/library"' in body
