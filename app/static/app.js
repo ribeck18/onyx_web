@@ -125,6 +125,7 @@ function configure_modal(overlay, trigger) {
 
   form.dataset.method = trigger.dataset.method || "POST";
   form.dataset.url = trigger.dataset.url || "";
+  form.dataset.redirect = trigger.dataset.redirect || "";
   if (title && trigger.dataset.title) {
     title.textContent = trigger.dataset.title;
   }
@@ -312,7 +313,11 @@ async function submit_modal_form(form) {
       ? await send_form(form.dataset.method, form.dataset.url, form)
       : await send_json(form.dataset.method, form.dataset.url, json_payload(form));
   if (response.ok) {
-    location.reload();
+    if (form.dataset.redirect) {
+      location.assign(form.dataset.redirect);
+    } else {
+      location.reload();
+    }
     return;
   }
   set_modal_pending(form, false);
@@ -450,7 +455,7 @@ async function save_notes(button) {
   const box = button.closest("[data-notes]");
   const input = box.querySelector("[data-notes-input]");
   const response = await send_json("PATCH", box.dataset.notesUrl, {
-    notes: input.value,
+    [box.dataset.notesField || "notes"]: input.value,
   });
   if (!response.ok) {
     return;
@@ -519,6 +524,10 @@ function switch_doc_version(entry) {
   }
 
   const is_current = entry.dataset.isCurrent === "true";
+  const historical_banner = document.querySelector("[data-doc-historical-banner]");
+  if (historical_banner) {
+    historical_banner.hidden = is_current;
+  }
   const title = preview.querySelector("[data-preview-title]");
   if (title) {
     title.textContent = is_current

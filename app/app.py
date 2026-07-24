@@ -14,6 +14,8 @@ from app.auth.web_pages import router as auth_pages_router
 from app.file.router import router as file_router
 from app.jsa.router import router as jsa_router
 from app.jsa.web_pages import router as jsa_pages_router
+from app.library_document.router import router as library_document_router
+from app.library_document.web_pages import router as library_document_pages_router
 from app.project.router import router as project_router
 from app.project.web_pages import router as project_pages_router
 from app.rfi.router import router as rfi_router
@@ -58,6 +60,7 @@ app.include_router(vdi_router, prefix="/api")
 app.include_router(revision_router, prefix="/api")
 app.include_router(file_router, prefix="/api")
 app.include_router(jsa_router, prefix="/api")
+app.include_router(library_document_router, prefix="/api")
 
 # HTML page routers are mounted at root (no /api prefix).
 app.include_router(auth_pages_router)
@@ -70,6 +73,7 @@ app.include_router(rfi_revision_pages_router)
 app.include_router(jsa_pages_router)
 app.include_router(vdi_pages_router)
 app.include_router(revision_pages_router)
+app.include_router(library_document_pages_router)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
