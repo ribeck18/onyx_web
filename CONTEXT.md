@@ -23,6 +23,14 @@ _Avoid_: VDI revision
 ### Project Document (ProjectDoc)
 A document associated with a Project that we **receive and record** but do not submit or get approved — drawings, specifications, special conditions, contracts, the vendor data schedule sheet, addendums, and the like. Contrast with a Vendor Data Item, which we submit to the buyer for approval. Explicitly excludes RFIs, RECs, and JSAs, which are separately modeled features. One ProjectDoc represents one logical document; a 40-page drawing set is a single document stored as one file per version. Carries our own **label** (a required, non-unique name we assign — e.g. "E-101", "Contract"), set once and reused across all its versions, and a required document **type**. Has no lifecycle/status of its own.
 
+### Library Document
+A company-wide reusable boilerplate or template, such as a Mix Design Specification or Cover Sheet, not associated with a Project. Every User may manage it and irreversibly delete the entire document, but not an individual version. It has a required, non-unique title and optional description, both editable independently of its immutable, file-backed versions; a new version is created only when a new file is added. Versions may have an optional note, editable only while that version is current, and it has no approval lifecycle. Its detail page presents the newest version by default; selecting a timeline entry switches its file preview and download in place, without a separate historical URL. Library Documents appear in a global alphabetical list showing title, current version, and updated date.
+_Avoid_: general document, template
+
+### Library Document Version
+An internally numbered, file-backed version of a Library Document. It records an optional note and is distinct from both a Project Document Version and a VDI Revision.
+_Avoid_: revision
+
 ### Request for Information (RFI)
 A project-scoped question submitted to the buyer to resolve missing, conflicting, or unclear project information. Identified within a Project by a required, unique, free-form RFI Number, which remains immutable after first submission, and a required title; its lifecycle is Not Started, Submitted, Approved, or Rejected. Both Approved and Rejected RFIs may be resubmitted as a new RFI Revision.
 _Avoid_: clarification request

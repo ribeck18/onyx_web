@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% from "macros/modal.html" import form_modal %}
+{% from "macros/preview.html" import file_pane %}
+
+{% set current_version = library_document.current_version %}
+
+{% block title %}{{ library_document.title }} · Onyx{% endblock %}
+
+{% block breadcrumb %}
+  <a class="crumb-link" href="/library">LIBRARY</a>
+  <span class="crumb-sep">/</span>
+  <span class="crumb-current">{{ library_document.title }}</span>
+{% endblock %}
+
+{% block content %}
+<section class="project-detail-header">
+  <div>
+    <p class="detail-number">LIBRARY DOCUMENT</p>
+    <h1 class="h1-detail">{{ library_document.title }}</h1>
+    {% if library_document.description %}
+    <p class="detail-description">{{ library_document.description }}</p>
+    {% endif %}
+  </div>
+</section>
+
+<div class="gradient-rule"></div>
+
+<div class="doc-actions">
+  <button type="button"
+          class="btn-ghost"
+          data-modal-open="library-document-modal"
+          data-mode="edit"
+          data-title="Edit Library Document"
+          data-submit-label="Save"
+          data-method="PATCH"
+          data-url="/api/library-documents/{{ library_document.id }}"
+          data-prefill='{{ {"title": library_document.title, "description": library_document.description} | tojson }}'>Edit Details</button>
+  <button type="button"
+          class="btn-primary"
+          data-modal-open="version-modal"
+          data-mode="create"
+          data-title="Add Version"
+          data-submit-label="Add Version"
+          data-method="POST"
+          data-url="/api/library-documents/{{ library_document.id }}/versions">+ Add Version</button>
+  <button type="button"
+          class="btn-ghost"
+          data-modal-open="version-note-modal"
+          data-mode="edit"
+          data-title="Edit Version Note"
+          data-submit-label="Save"
+          data-method="PATCH"
+          data-url="/api/library-documents/{{ library_document.id }}/versions/{{ current_version.id }}"
+          data-prefill='{{ {"version_note": current_version.version_note} | tojson }}'>Edit Current Note</button>
+  <button type="button"
+          class="btn-ghost"
+          data-modal-open="delete-library-document-modal"
+          data-title="Delete Library Document"
+          data-submit-label="Delete"
+          data-method="DELETE"
+          data-url="/api/library-documents/{{ library_document.id }}"
+          data-redirect="/library">Delete</button>
+</div>
+
+<section class="vdi-columns">
+  <div class="vdi-col-left">
+    <div class="preview" data-doc-preview>
+      <div class="preview-head">
+        <span class="preview-title" data-preview-title>CURRENT VERSION</span>
+        <span class="preview-filename" data-preview-filename>{{ current_version.file.original_name }}</span>
+        <a class="preview-open" data-preview-open href="/api/files/{{ current_version.file.id }}?download=1">DOWNLOAD</a>
+      </div>
+      {% for version in library_document_versions %}
+      <div class="preview-pane" data-doc-pane="{{ version.id }}"{% if version.id != current_version.id %} hidden{% endif %}>
+        {{ file_pane(version.file) }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="vdi-col-right">
+    <p class="section-label">VERSION HISTORY</p>
+    <div class="timeline timeline--doc">
+      {% for version in library_document_versions | reverse %}
+      {% set is_current_version = version.id == current_version.id %}
+      <button type="button"
+              class="timeline-entry"
+              data-doc-version="{{ version.id }}"
+              data-version-number="{{ version.version_number }}"
+              data-is-current="{{ 'true' if is_current_version else 'false' }}"
+              data-filename="{{ version.file.original_name }}"
+              data-file-url="/api/files/{{ version.file.id }}">
+        <span class="timeline-node{% if is_current_version %} is-current{% endif %}" aria-hidden="true"></span>
+        <div class="timeline-row">
+          <span class="timeline-rev">VERSION {{ version.version_number }}</span>
+          {% if is_current_version %}
+          <span class="timeline-current-tag">CURRENT</span>
+          {% else %}
+          <span class="timeline-current-tag" data-doc-viewing hidden>VIEWING</span>
+          {% endif %}
+        </div>
+        {% if version.version_note %}
+        <p class="timeline-desc">{{ version.version_note }}</p>
+        {% endif %}
+        <p class="timeline-dates">ADDED {{ version.created_at.strftime("%Y-%m-%d") }}</p>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block modals %}
+{% call form_modal("delete-library-document-modal", "Delete Library Document", "Delete") %}
+  <p>Delete {{ library_document.title }} and all version history? This cannot be undone.</p>
+{% endcall %}
+
+{% call form_modal("library-document-modal", "Edit Library Document", "Save", "Title is required.") %}
+  <label class="field">
+    <span class="field-label">Title <span class="req">*</span></span>
+    <input type="text" name="title" class="field-input" required autocomplete="off">
+  </label>
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea name="description" class="field-input field-textarea" rows="3" data-null-if-blank></textarea>
+  </label>
+{% endcall %}
+
+{% call form_modal("version-note-modal", "Edit Version Note", "Save") %}
+  <label class="field">
+    <span class="field-label">Version Note</span>
+    <textarea name="version_note" class="field-input field-textarea" rows="3" data-null-if-blank></textarea>
+  </label>
+{% endcall %}
+
+{% call form_modal("version-modal", "Add Version", "Add Version", "A file is required.", multipart=true) %}
+  <label class="field">
+    <span class="field-label">Version File <span class="req">*</span></span>
+    <input type="file" name="file" class="field-file" required>
+  </label>
+  <label class="field">
+    <span class="field-label">Version Note</span>
+    <textarea name="version_note" class="field-input field-textarea" rows="3"></textarea>
+  </label>
+{% endcall %}
+{% endblock %}
