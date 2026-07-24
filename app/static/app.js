@@ -455,7 +455,7 @@ async function save_notes(button) {
   const box = button.closest("[data-notes]");
   const input = box.querySelector("[data-notes-input]");
   const response = await send_json("PATCH", box.dataset.notesUrl, {
-    notes: input.value,
+    [box.dataset.notesField || "notes"]: input.value,
   });
   if (!response.ok) {
     return;
@@ -524,6 +524,10 @@ function switch_doc_version(entry) {
   }
 
   const is_current = entry.dataset.isCurrent === "true";
+  const historical_banner = document.querySelector("[data-doc-historical-banner]");
+  if (historical_banner) {
+    historical_banner.hidden = is_current;
+  }
   const title = preview.querySelector("[data-preview-title]");
   if (title) {
     title.textContent = is_current

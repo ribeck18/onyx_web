@@ -40,6 +40,8 @@ async def test_detail_page_defaults_to_newest_and_prerenders_historical_panes(
     assert response.status_code == 200
     body = response.text
     assert 'data-doc-preview' in body
+    assert 'data-doc-historical-banner hidden' in body
+    assert "VIEWING PAST REVISION — NOT THE CURRENT STATE OF THIS LIBRARY DOCUMENT." in body
     assert f'data-doc-pane="{current_version["id"]}"' in body
     assert f'data-doc-pane="{document["current_version"]["id"]}" hidden' in body
     assert f'data-doc-version="{current_version["id"]}"' in body
@@ -57,10 +59,10 @@ async def test_detail_page_returns_404_for_unknown_document(client: AsyncClient)
     assert response.status_code == 404
 
 
-async def test_detail_page_keeps_metadata_editable_and_old_notes_read_only(
+async def test_detail_page_keeps_metadata_editable_and_current_note_inline(
     client: AsyncClient,
 ) -> None:
-    """Only the newest Version Note has an edit control; metadata is independent."""
+    """Metadata actions share the header and the current note saves inline."""
     document = await create_library_document(client)
     current_version = await add_library_document_version(client, document["id"])
 
@@ -77,16 +79,15 @@ async def test_detail_page_keeps_metadata_editable_and_old_notes_read_only(
     assert f'data-url="/api/library-documents/{document["id"]}"' in body
     assert 'data-prefill=' in body
     assert (
-        f'data-url="/api/library-documents/{document["id"]}/versions/'
+        f'data-notes-url="/api/library-documents/{document["id"]}/versions/'
         f'{current_version["id"]}"'
     ) in body
-    assert (
-        f'/api/library-documents/{document["id"]}/versions/'
-        f'{document["current_version"]["id"]}"'
-    ) not in body
-    delete_start = body.index('data-modal-open="delete-library-document-modal"')
+    assert 'data-notes-field="version_note"' in body
+    assert "Corrected dimensions" in body
+    assert body.index('class="h1-detail"') < body.index('data-modal-open="library-document-modal"')
+    delete_start = body.rfind("<button", 0, body.index('data-modal-open="delete-library-document-modal"'))
     delete_button = body[delete_start : body.index(">Delete</button>", delete_start)]
-    assert 'data-user-action' not in delete_button
+    assert 'btn-row-danger' in delete_button
     assert 'data-method="DELETE"' in delete_button
     assert 'data-redirect="/library"' in delete_button
     assert 'data-modal="delete-library-document-modal"' in body

@@ -12,6 +12,16 @@
   <span class="crumb-current">{{ library_document.title }}</span>
 {% endblock %}
 
+{% block banner %}
+<div class="hist-banner" data-doc-historical-banner hidden>
+  <div class="hist-banner-inner">
+    <span class="hist-banner-glyph" aria-hidden="true">!</span>
+    <span class="hist-banner-text">VIEWING PAST REVISION — NOT THE CURRENT STATE OF THIS LIBRARY DOCUMENT.</span>
+    <a class="hist-banner-link" href="/library-documents/{{ library_document.id }}">RETURN TO CURRENT &#8617;</a>
+  </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <section class="project-detail-header">
   <div>
@@ -21,20 +31,30 @@
     <p class="detail-description">{{ library_document.description }}</p>
     {% endif %}
   </div>
+  <div class="header-actions">
+    <button type="button"
+            class="btn-ghost"
+            data-modal-open="library-document-modal"
+            data-mode="edit"
+            data-title="Edit Library Document"
+            data-submit-label="Save"
+            data-method="PATCH"
+            data-url="/api/library-documents/{{ library_document.id }}"
+            data-prefill='{{ {"title": library_document.title, "description": library_document.description} | tojson }}'>Edit</button>
+    <button type="button"
+            class="btn-ghost btn-row-danger"
+            data-modal-open="delete-library-document-modal"
+            data-title="Delete Library Document"
+            data-submit-label="Delete"
+            data-method="DELETE"
+            data-url="/api/library-documents/{{ library_document.id }}"
+            data-redirect="/library">Delete</button>
+  </div>
 </section>
 
 <div class="gradient-rule"></div>
 
 <div class="doc-actions">
-  <button type="button"
-          class="btn-ghost"
-          data-modal-open="library-document-modal"
-          data-mode="edit"
-          data-title="Edit Library Document"
-          data-submit-label="Save"
-          data-method="PATCH"
-          data-url="/api/library-documents/{{ library_document.id }}"
-          data-prefill='{{ {"title": library_document.title, "description": library_document.description} | tojson }}'>Edit Details</button>
   <button type="button"
           class="btn-primary"
           data-modal-open="version-modal"
@@ -43,23 +63,6 @@
           data-submit-label="Add Version"
           data-method="POST"
           data-url="/api/library-documents/{{ library_document.id }}/versions">+ Add Version</button>
-  <button type="button"
-          class="btn-ghost"
-          data-modal-open="version-note-modal"
-          data-mode="edit"
-          data-title="Edit Version Note"
-          data-submit-label="Save"
-          data-method="PATCH"
-          data-url="/api/library-documents/{{ library_document.id }}/versions/{{ current_version.id }}"
-          data-prefill='{{ {"version_note": current_version.version_note} | tojson }}'>Edit Current Note</button>
-  <button type="button"
-          class="btn-ghost"
-          data-modal-open="delete-library-document-modal"
-          data-title="Delete Library Document"
-          data-submit-label="Delete"
-          data-method="DELETE"
-          data-url="/api/library-documents/{{ library_document.id }}"
-          data-redirect="/library">Delete</button>
 </div>
 
 <section class="vdi-columns">
@@ -75,6 +78,18 @@
         {{ file_pane(version.file) }}
       </div>
       {% endfor %}
+    </div>
+
+    <div class="notes"
+         data-notes
+         data-notes-url="/api/library-documents/{{ library_document.id }}/versions/{{ current_version.id }}"
+         data-notes-field="version_note">
+      <div class="notes-head">
+        <p class="section-label">NOTES</p>
+        <span class="notes-saved" data-notes-saved hidden>SAVED &#10003;</span>
+      </div>
+      <textarea class="notes-text" rows="4" data-notes-input>{{ current_version.version_note or "" }}</textarea>
+      <button type="button" class="save-notes" data-notes-save disabled>Save notes</button>
     </div>
   </div>
 
@@ -123,13 +138,6 @@
   <label class="field">
     <span class="field-label">Description</span>
     <textarea name="description" class="field-input field-textarea" rows="3" data-null-if-blank></textarea>
-  </label>
-{% endcall %}
-
-{% call form_modal("version-note-modal", "Edit Version Note", "Save") %}
-  <label class="field">
-    <span class="field-label">Version Note</span>
-    <textarea name="version_note" class="field-input field-textarea" rows="3" data-null-if-blank></textarea>
   </label>
 {% endcall %}
 
