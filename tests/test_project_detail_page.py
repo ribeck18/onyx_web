@@ -98,6 +98,57 @@ async def test_table_renders_row_per_vdi_with_badge_and_code(
     assert f'href="/vdi/{vdi_id}"' in body
 
 
+async def test_populated_vdi_table_renders_list_filter_contract(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A populated VDI list exposes its neutral live-filter markup."""
+    project_id = await seed_project(session, project_number="26-131")
+    await add_vdi(
+        session,
+        project_id,
+        item_number=12,
+        name="Concrete Mix Design",
+        status=SubmitStatus.B,
+        submittal_number="26-131-001",
+        submit_code=SubmitCode.PS,
+    )
+    await session.commit()
+
+    response = await client.get(f"/projects/{project_id}")
+
+    body = response.text
+    assert 'data-list-filter' in body
+    assert 'data-list-filter-input' in body
+    assert 'aria-controls="vdi-table"' in body
+    assert 'data-list-filter-count aria-live="polite">Showing all 1' in body
+    assert 'data-list-filter-table' in body
+    assert 'data-list-filter-row' in body
+    assert (
+        'data-list-filter-text="Concrete Mix Design 12 26-131-001 PS '
+        'Prior to Shipment Mandatory Approval REJECTED /B"'
+    ) in body
+    assert 'data-list-filter-no-results hidden' in body
+    assert (
+        "Search by name, item number, submittal number, submit code, approval type, "
+        "or lifecycle status."
+    ) in body
+    assert body.index('data-list-filter-input') < body.index('data-delete-toggle')
+
+
+async def test_empty_vdi_list_omits_list_filter_contract(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """The initial VDI empty state remains free of filtering controls."""
+    project_id = await seed_project(session, project_number="26-007")
+    await session.commit()
+
+    response = await client.get(f"/projects/{project_id}")
+
+    body = response.text
+    assert "No vendor data items yet." in body
+    assert "data-list-filter" not in body
+
+
 async def test_null_submittal_renders_em_dash(
     client: AsyncClient, session: AsyncSession
 ) -> None:
