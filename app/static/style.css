@@ -1510,7 +1510,8 @@ a { color: inherit; text-decoration: none; }
 /* ---------------------------------------------------------------- responsive */
 
 @media (max-width: 640px) {
-  .list-filter .section-header { align-items: stretch; flex-wrap: wrap; }
+  .list-filter .section-header,
+  .list-filter .gallery-header { align-items: stretch; flex-wrap: wrap; }
   .list-filter-actions { width: 100%; }
   .list-filter-input { flex: 0 0 100%; width: 100%; }
 }

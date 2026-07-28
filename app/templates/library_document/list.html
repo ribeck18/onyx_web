@@ -8,12 +8,27 @@
 {% endblock %}
 
 {% block content %}
+{% if library_documents %}
+<div class="list-filter" data-list-filter>
+{% endif %}
 <section class="page-header gallery-header">
   <div>
     <p class="eyebrow">COMPANY-WIDE</p>
     <h1 class="h1-home">Library Documents</h1>
+    {% if library_documents %}
+    <p class="list-filter-count" data-list-filter-count aria-live="polite">Showing all {{ library_documents | length }}</p>
+    {% endif %}
   </div>
-  <div class="header-actions">
+  <div class="header-actions{% if library_documents %} list-filter-actions{% endif %}">
+    {% if library_documents %}
+    <input id="library-document-search"
+           class="list-filter-input"
+           type="search"
+           placeholder="Search library documents"
+           aria-label="Search library documents"
+           aria-controls="library-document-table"
+           data-list-filter-input>
+    {% endif %}
     <button type="button"
             class="btn-primary"
             data-modal-open="library-document-modal"
@@ -28,7 +43,7 @@
 <div class="header-rule"></div>
 
 {% if library_documents %}
-<table class="vdi-table" id="library-document-table">
+<table class="vdi-table" id="library-document-table" data-list-filter-table>
   <thead>
     <tr>
       <th class="col-name">TITLE</th>
@@ -38,7 +53,10 @@
   </thead>
   <tbody>
     {% for library_document in library_documents %}
-    <tr class="vdi-row" data-row-href="/library-documents/{{ library_document.id }}">
+    <tr class="vdi-row"
+        data-row-href="/library-documents/{{ library_document.id }}"
+        data-list-filter-row
+        data-list-filter-text="{{ library_document.title }}">
       <td class="col-name">
         <span class="vdi-row-link">{{ library_document.title }}</span>
       </td>
@@ -52,6 +70,11 @@
     {% endfor %}
   </tbody>
 </table>
+<div class="list-filter-empty" data-list-filter-no-results hidden>
+  <p class="empty-title">No library documents match your search.</p>
+  <p class="empty-sub">Search by title.</p>
+</div>
+</div>
 {% else %}
 <div class="empty-state">
   <p class="empty-title">No library documents yet.</p>

@@ -77,9 +77,12 @@ test("list filter replaces the table only for a non-empty zero-match query", () 
   assert.deepEqual(rows.map((row) => row.hidden), [false, false]);
 });
 
-test("narrow section-header layout is limited to list filters", () => {
+test("narrow list-filter headers wrap without affecting other headers", () => {
   const css = readFileSync(join(project_root, "app/static/style.css"), "utf8");
 
-  assert.match(css, /\.list-filter \.section-header \{ align-items: stretch; flex-wrap: wrap; \}/);
-  assert.doesNotMatch(css, /^\s*\.section-header \{ align-items: stretch; flex-wrap: wrap; \}$/m);
+  assert.match(
+    css,
+    /\.list-filter \.section-header,\n  \.list-filter \.gallery-header \{ align-items: stretch; flex-wrap: wrap; \}/,
+  );
+  assert.doesNotMatch(css, /^\s*\.(?:section|gallery)-header \{ align-items: stretch; flex-wrap: wrap; \}$/m);
 });
