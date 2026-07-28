@@ -22,10 +22,25 @@
 
 <div class="gradient-rule"></div>
 
+{% if rfis %}
+<div class="list-filter" data-list-filter>
+{% endif %}
 <section class="section-header">
-  <p class="section-label">REQUESTS FOR INFORMATION</p>
-  <div class="header-actions">
+  <div>
+    <p class="section-label">REQUESTS FOR INFORMATION</p>
     {% if rfis %}
+    <p class="list-filter-count" data-list-filter-count aria-live="polite">Showing all {{ rfis | length }}</p>
+    {% endif %}
+  </div>
+  <div class="header-actions{% if rfis %} list-filter-actions{% endif %}">
+    {% if rfis %}
+    <input id="rfi-search"
+           class="list-filter-input"
+           type="search"
+           placeholder="Search RFIs"
+           aria-label="Search RFIs"
+           aria-controls="rfi-table"
+           data-list-filter-input>
     <button type="button" class="btn-ghost delete-toggle" data-delete-toggle="rfi-table">Delete</button>
     {% endif %}
     <button type="button"
@@ -40,7 +55,7 @@
 </section>
 
 {% if rfis %}
-<table class="vdi-table" id="rfi-table">
+<table class="vdi-table" id="rfi-table" data-list-filter-table>
   <thead>
     <tr>
       <th class="col-name">TITLE</th>
@@ -54,6 +69,8 @@
     <tr class="vdi-row"
         data-rfi-row
         data-row-href="/rfis/{{ rfi.id }}"
+        data-list-filter-row
+        data-list-filter-text="{{ rfi.title }} {{ rfi.rfi_number }} {{ rfi.spec_drawing_reference or '' }} {{ rfi.status | status_label }}"
         data-delete-row
         data-delete-url="/api/rfis/{{ rfi.id }}"
         data-delete-confirm="Delete RFI &quot;{{ rfi.rfi_number }}&quot;?"
@@ -78,6 +95,11 @@
     {% endfor %}
   </tbody>
 </table>
+<div class="list-filter-empty" data-list-filter-no-results hidden>
+  <p class="empty-title">No RFIs match your search.</p>
+  <p class="empty-sub">Search by title, RFI number, spec / drawing reference, or lifecycle status.</p>
+</div>
+</div>
 <p class="field-error" data-delete-error hidden></p>
 {% else %}
 <div class="empty-state">
