@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -74,6 +76,41 @@ async def test_documents_list_shows_label_chip_version_and_date(
     assert f'data-row-href="/project-docs/{doc.id}"' in body
 
 
+async def test_documents_list_populated_filter_uses_label_and_type_only(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    """A populated list exposes the shared filter contract for document fields."""
+    project = await seed_project(session)
+    doc = await add_doc(
+        session,
+        project,
+        label="SC-01",
+        document_type=DocumentType.SPECIAL_CONDITION,
+        version_count=2,
+    )
+    await session.commit()
+
+    response = await client.get(f"/projects/{project.id}/documents")
+
+    body = response.text
+    search_text = re.search(
+        r'<tr[^>]*data-list-filter-text="([^"]+)"',
+        body,
+    )
+    assert 'class="list-filter" data-list-filter' in body
+    assert 'data-list-filter-count aria-live="polite">Showing all 1</p>' in body
+    assert 'id="doc-search"' in body
+    assert 'aria-controls="doc-table"' in body
+    assert 'data-list-filter-input' in body
+    assert body.index('data-list-filter-input') < body.index('+ Add Document')
+    assert 'id="doc-table" data-list-filter-table' in body
+    assert search_text is not None
+    assert search_text.group(1) == "SC-01 Special Condition"
+    assert f'data-row-href="/project-docs/{doc.id}"' in body
+    assert "No project documents match your search." in body
+    assert "Search by label or document type." in body
+
+
 async def test_documents_list_row_is_the_click_target(
     client: AsyncClient, session: AsyncSession
 ) -> None:
@@ -116,7 +153,10 @@ async def test_documents_list_empty_state(
 
     response = await client.get(f"/projects/{project.id}/documents")
 
-    assert "No documents yet." in response.text
+    body = response.text
+    assert "No documents yet." in body
+    assert "data-list-filter" not in body
+    assert "No project documents match your search." not in body
 
 
 async def test_detail_unknown_document_returns_404(client: AsyncClient) -> None:
