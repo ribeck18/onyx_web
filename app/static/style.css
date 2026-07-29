@@ -1254,6 +1254,42 @@ a { color: inherit; text-decoration: none; }
 
 .section-header .section-label { margin: 0; }
 
+/* ---------------------------------------------------------------- list filter */
+
+.list-filter { margin-bottom: 80px; }
+.list-filter .vdi-table { margin-bottom: 18px; }
+
+.list-filter-actions { flex-wrap: wrap; justify-content: flex-end; }
+
+.list-filter-input {
+  width: 240px;
+  padding: 8px 12px;
+  border: 1px solid var(--field-line);
+  border-radius: 4px;
+  background: var(--field-bg);
+  color: var(--field-text);
+  font: inherit;
+  outline: none;
+}
+.list-filter-input:focus { border-color: var(--accent-line); }
+
+.list-filter-count {
+  margin: 5px 0 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+
+.list-filter-empty {
+  padding: 28px 20px;
+  border: 1px solid var(--line-3);
+  border-radius: 4px;
+  background: var(--panel);
+  text-align: center;
+}
+.list-filter-empty[hidden] { display: none; }
+
 /* ---------------------------------------------------------------- VDI table */
 
 .vdi-table {
@@ -1470,3 +1506,12 @@ a { color: inherit; text-decoration: none; }
 }
 
 .doc-type-line { margin: 10px 0 0; }
+
+/* ---------------------------------------------------------------- responsive */
+
+@media (max-width: 640px) {
+  .list-filter .section-header,
+  .list-filter .gallery-header { align-items: stretch; flex-wrap: wrap; }
+  .list-filter-actions { width: 100%; }
+  .list-filter-input { flex: 0 0 100%; width: 100%; }
+}

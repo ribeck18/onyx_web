@@ -22,9 +22,26 @@
 
 <div class="gradient-rule"></div>
 
+{% if project_docs %}
+<div class="list-filter" data-list-filter>
+{% endif %}
 <section class="section-header">
-  <p class="section-label">PROJECT DOCUMENTS</p>
-  <div class="header-actions">
+  <div>
+    <p class="section-label">PROJECT DOCUMENTS</p>
+    {% if project_docs %}
+    <p class="list-filter-count" data-list-filter-count aria-live="polite">Showing all {{ project_docs | length }}</p>
+    {% endif %}
+  </div>
+  <div class="header-actions{% if project_docs %} list-filter-actions{% endif %}">
+    {% if project_docs %}
+    <input id="doc-search"
+           class="list-filter-input"
+           type="search"
+           placeholder="Search project documents"
+           aria-label="Search project documents"
+           aria-controls="doc-table"
+           data-list-filter-input>
+    {% endif %}
     <button type="button"
             class="btn-primary"
             data-modal-open="doc-modal"
@@ -37,7 +54,7 @@
 </section>
 
 {% if project_docs %}
-<table class="vdi-table" id="doc-table">
+<table class="vdi-table" id="doc-table" data-list-filter-table>
   <thead>
     <tr>
       <th class="col-name">LABEL</th>
@@ -48,7 +65,10 @@
   </thead>
   <tbody>
     {% for doc in project_docs %}
-    <tr class="vdi-row" data-row-href="/project-docs/{{ doc.id }}">
+    <tr class="vdi-row"
+        data-row-href="/project-docs/{{ doc.id }}"
+        data-list-filter-row
+        data-list-filter-text="{{ doc.label }} {{ doc.type | document_type_label }}">
       <td class="col-name">
         <span class="vdi-row-link">{{ doc.label }}</span>
       </td>
@@ -63,6 +83,11 @@
     {% endfor %}
   </tbody>
 </table>
+<div class="list-filter-empty" data-list-filter-no-results hidden>
+  <p class="empty-title">No project documents match your search.</p>
+  <p class="empty-sub">Search by label or document type.</p>
+</div>
+</div>
 {% else %}
 <div class="empty-state">
   <p class="empty-title">No documents yet.</p>

@@ -368,6 +368,38 @@ async function submit_token_form(form) {
   }
 }
 
+// -------------------------------------------------------------- list filters
+
+function initialize_list_filters() {
+  for (const list_filter of document.querySelectorAll("[data-list-filter]")) {
+    const input = list_filter.querySelector("[data-list-filter-input]");
+    const table = list_filter.querySelector("[data-list-filter-table]");
+    const count = list_filter.querySelector("[data-list-filter-count]");
+    const no_results = list_filter.querySelector("[data-list-filter-no-results]");
+    if (!input || !table || !count || !no_results) {
+      continue;
+    }
+    const rows = [...table.querySelectorAll("[data-list-filter-row]")];
+
+    input.addEventListener("input", () => {
+      const query = input.value.trim().toLowerCase();
+      let matching_rows = 0;
+      for (const row of rows) {
+        const matches = row.dataset.listFilterText.toLowerCase().includes(query);
+        row.hidden = !matches;
+        if (matches) {
+          matching_rows += 1;
+        }
+      }
+      count.textContent = query
+        ? `${matching_rows} of ${rows.length}`
+        : `Showing all ${rows.length}`;
+      table.hidden = query !== "" && matching_rows === 0;
+      no_results.hidden = matching_rows !== 0;
+    });
+  }
+}
+
 // -------------------------------------------------------------- delete mode
 
 function delete_grid_for(toggle) {
@@ -567,6 +599,8 @@ function switch_doc_version(entry) {
 }
 
 // --------------------------------------------------------- event delegation
+
+initialize_list_filters();
 
 document.addEventListener("click", (event) => {
   const theme_toggle = event.target.closest("[data-theme-toggle]");

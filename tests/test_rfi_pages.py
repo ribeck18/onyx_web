@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -75,6 +77,56 @@ async def test_rfi_list_empty_state_and_create_contract(
     assert f'value="{project_id}"' in body
     assert 'data-url="/api/rfis"' in body
     assert "data-field-error" in body
+    assert "data-list-filter" not in body
+    assert "No RFIs match your search." not in body
+
+
+async def test_populated_rfi_list_renders_shared_filter_contract(
+    client: AsyncClient,
+    session: AsyncSession,
+) -> None:
+    """A populated RFI list filters only visible RFI row fields."""
+    project_id = await seed_project(session)
+    created = await client.post(
+        "/api/rfis",
+        json=rfi_payload(
+            project_id,
+            rfi_number="RFI-014",
+            title="Clarify roof drain slope",
+            spec_drawing_reference="A-201",
+            notes="Not searchable",
+        ),
+    )
+    assert created.status_code == 201
+
+    response = await client.get(f"/projects/{project_id}/rfis")
+
+    body = response.text
+    search_text = re.search(
+        r'<tr[^>]*data-list-filter-text="([^"]+)"',
+        body,
+    )
+    assert response.status_code == 200
+    assert 'class="list-filter" data-list-filter' in body
+    assert 'data-list-filter-count aria-live="polite">Showing all 1</p>' in body
+    assert 'id="rfi-search"' in body
+    assert 'aria-controls="rfi-table"' in body
+    assert 'data-list-filter-input' in body
+    assert body.index('data-list-filter-input') < body.index('data-delete-toggle')
+    assert body.index('data-list-filter-input') < body.index('+ New RFI')
+    assert 'id="rfi-table" data-list-filter-table' in body
+    assert search_text is not None
+    assert search_text.group(1) == (
+        "Clarify roof drain slope RFI-014 A-201 NOT STARTED"
+    )
+    assert 'data-row-href="/rfis/' in body
+    assert 'data-list-filter-no-results hidden' in body
+    assert "No RFIs match your search." in body
+    assert (
+        "Search by title, RFI number, spec / drawing reference, or lifecycle "
+        "status."
+    ) in body
+    assert "Not searchable" not in body
 
 
 async def test_rfi_list_is_ordered_and_has_edit_delete_contract(

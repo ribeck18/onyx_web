@@ -53,10 +53,25 @@
   </a>
 </div>
 
+{% if vdis %}
+<div class="list-filter" data-list-filter>
+{% endif %}
 <section class="section-header">
-  <p class="section-label">VENDOR DATA ITEMS</p>
-  <div class="header-actions">
+  <div>
+    <p class="section-label">VENDOR DATA ITEMS</p>
     {% if vdis %}
+    <p class="list-filter-count" data-list-filter-count aria-live="polite">Showing all {{ vdis | length }}</p>
+    {% endif %}
+  </div>
+  <div class="header-actions{% if vdis %} list-filter-actions{% endif %}">
+    {% if vdis %}
+    <input id="vdi-search"
+           class="list-filter-input"
+           type="search"
+           placeholder="Search vendor data items"
+           aria-label="Search vendor data items"
+           aria-controls="vdi-table"
+           data-list-filter-input>
     <button type="button" class="btn-ghost delete-toggle" data-delete-toggle="vdi-table">Delete</button>
     {% endif %}
     <button type="button"
@@ -71,7 +86,7 @@
 </section>
 
 {% if vdis %}
-<table class="vdi-table" id="vdi-table">
+<table class="vdi-table" id="vdi-table" data-list-filter-table>
   <thead>
     <tr>
       <th class="col-name">NAME</th>
@@ -85,6 +100,8 @@
     {% for vdi in vdis %}
     <tr class="vdi-row"
         data-vdi-row
+        data-list-filter-row
+        data-list-filter-text="{{ vdi.name }} {{ vdi.item_number }} {{ vdi.submittal_number or '' }} {{ vdi.submit_code | submit_code_short }} {{ vdi.submit_code | submit_code_label }} {{ vdi.approval_type | approval_type_label }} {{ vdi.status | status_label }}"
         data-delete-row
         data-delete-url="/api/vdi/{{ vdi.id }}"
         data-delete-confirm="Delete VDI &quot;{{ vdi.name }}&quot;? This removes its revision history."
@@ -110,6 +127,11 @@
     {% endfor %}
   </tbody>
 </table>
+<div class="list-filter-empty" data-list-filter-no-results hidden>
+  <p class="empty-title">No vendor data items match your search.</p>
+  <p class="empty-sub">Search by name, item number, submittal number, submit code, approval type, or lifecycle status.</p>
+</div>
+</div>
 {% else %}
 <div class="empty-state">
   <p class="empty-title">No vendor data items yet.</p>
